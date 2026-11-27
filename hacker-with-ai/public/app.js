@@ -37,8 +37,6 @@ $("join-form").addEventListener("submit", async (e) => {
     history.replaceState(null, "", `?session=${sessionId}`);
     $("prompt-text").value = data.joinPrompt;
     $("copy-btn").disabled = false;
-    $("brief-url-text").value = `${location.origin}/api/sessions/${sessionId}/ai/brief`;
-    $("copy-url-btn").disabled = false;
     $("go-room-btn").disabled = false;
     setStep(1, "done");
     setStep(2, "active");
@@ -47,20 +45,6 @@ $("join-form").addEventListener("submit", async (e) => {
     errEl.textContent = "セッションの作成に失敗しました。通信環境を確認して、もう一度試してください。";
     errEl.hidden = false;
   }
-});
-
-$("copy-url-btn").addEventListener("click", async () => {
-  const t = $("brief-url-text");
-  try {
-    await navigator.clipboard.writeText(t.value);
-  } catch {
-    t.select();
-    document.execCommand("copy");
-  }
-  $("copy-url-btn").textContent = "コピーしました";
-  setStep(2, "done");
-  setStep(3, "active");
-  setTimeout(() => ($("copy-url-btn").textContent = "URLをコピー"), 2500);
 });
 
 $("copy-btn").addEventListener("click", async () => {
@@ -117,32 +101,16 @@ $("rejoin-btn").addEventListener("click", async () => {
 });
 
 $("brief-copy-btn").addEventListener("click", async () => {
-  if (!sessionId || !state?.mission?.id) return;
-  const res = await fetch(`/api/sessions/${sessionId}/ai/brief/${state.mission.id}`);
+  if (!sessionId) return;
+  // brief は POST 専用。画面（同一オリジン）からは POST で取得して本文をコピーする。
+  const res = await fetch(`/api/sessions/${sessionId}/ai/brief`, { method: "POST" });
   if (!res.ok) return;
   const text = await res.text();
   try {
     await navigator.clipboard.writeText(text);
     $("brief-copy-btn").textContent = "コピーしました";
     setTimeout(
-      () => ($("brief-copy-btn").textContent = "このミッションの brief 本文をコピー"),
-      2500,
-    );
-  } catch {
-    /* コピーできない環境では何もしない */
-  }
-});
-
-$("mission-prompt-btn").addEventListener("click", async () => {
-  if (!sessionId || !state?.mission?.id) return;
-  const res = await fetch(`/api/sessions/${sessionId}/mission-prompt/${state.mission.id}`);
-  if (!res.ok) return;
-  const data = await res.json();
-  try {
-    await navigator.clipboard.writeText(data.prompt);
-    $("mission-prompt-btn").textContent = "コピーしました";
-    setTimeout(
-      () => ($("mission-prompt-btn").textContent = "このミッションの参加プロンプトをコピー"),
+      () => ($("brief-copy-btn").textContent = "brief 本文をコピー（貼る用）"),
       2500,
     );
   } catch {
@@ -229,12 +197,11 @@ function render(state) {
       const noteBtn = $("partner-note-btn");
       noteBtn.hidden = false;
       noteBtn.onclick = async () => {
-        // URL だけを単独で送るのが一番効く（長い文に埋めると AI が読みに行かない）。
-        const briefUrl = `${location.origin}/api/sessions/${sessionId}/ai/brief/${next.id}`;
+        // 事件の切り替わりは「声かけ＋ brief の取り直し」だけ。取り先は変わらない。
         try {
-          await navigator.clipboard.writeText(briefUrl);
+          await navigator.clipboard.writeText("次の事件だよ。brief を取り直して。");
           noteBtn.textContent = "コピーしました";
-          setTimeout(() => (noteBtn.textContent = "相方への連絡URLをコピー（次の brief）"), 2500);
+          setTimeout(() => (noteBtn.textContent = "相方への声かけ文をコピー（次の事件だよ）"), 2500);
         } catch {
           /* コピーできない環境では何もしない */
         }
