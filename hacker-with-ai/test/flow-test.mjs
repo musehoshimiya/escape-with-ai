@@ -61,7 +61,7 @@ try {
   check("参加プロンプトは接続確認に絞られ、ルール詳細は載っていない（2段構え）", !prompt.includes("合言葉（大事）") && prompt.includes("案内が正本"));
   check("参加プロンプトに Gemini の一行ルールがある", prompt.includes("Gemini ではこのゲームに参加できません"));
   check("参加プロンプトに Perplexity の一行ルールがある", prompt.includes("Perplexity ではこのゲームに参加できません"));
-  check("参加プロンプトに POST 握りつぶしの作法がある", prompt.includes("握りつぶす"));
+  check("参加プロンプトに brief 以外のエンドポイントは開示されない（第1段は最小限）", !prompt.includes("/ai/message") && !prompt.includes("/ai/celebrate"));
 
   console.log("== スマホ参加時の案内（UA出し分け） ==");
   const mkSession = async (ua) => {
@@ -84,6 +84,8 @@ try {
   check("brief の冒頭に相方への案内（第2段）がある", brief0.text.startsWith("■ 相方への案内"));
   check("案内に合言葉のルールが含まれる", brief0.text.includes("合言葉（大事）") && brief0.text.includes("ゲームのヒント："));
   check("案内にお祝いの作法が含まれる", brief0.text.includes("ゲームのお祝い："));
+  check("案内に POST 握りつぶしの作法がある", brief0.text.includes("握りつぶす"));
+  check("brief に接続メモ（エンドポイント開示）がある", brief0.text.includes("接続メモ") && brief0.text.includes("/ai/message") && brief0.text.includes("/events?since=0"));
   check("用語集が含まれる（ランサムウェア）", brief0.text.includes("ランサムウェア"));
   check("用語集が含まれる（二要素認証）", brief0.text.includes("二要素認証"));
   check("ヒント集が含まれる（組み立て方）", brief0.text.includes("パスワードの組み立て方"));

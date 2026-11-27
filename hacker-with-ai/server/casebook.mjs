@@ -126,6 +126,18 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
   const m = mod(c);
   const lines = [];
   lines.push(PARTNER_GUIDE, ``);
+  // エンドポイントの開示は brief（第2段）側で行う。参加プロンプト（第1段）には brief の URL だけを載せる。
+  const base = String(celebrateGetUrl ?? "").split("/ai/celebrate-get")[0];
+  if (base) {
+    lines.push(
+      `■ 接続メモ（このセッションのエンドポイント）`,
+      `  状態とヒント集（この brief）： curl -s ${base}/ai/brief`,
+      `  出来事の一覧： curl -s "${base}/events?since=0"（since に最後に見た seq を入れると差分だけ返ります）`,
+      `  画面への投稿： curl -s -X POST ${base}/ai/message -H 'Content-Type: application/json' -d '{"text":"ここにメッセージ"}'`,
+      `  お祝い（復旧後）： curl -s -X POST ${base}/ai/celebrate -H 'Content-Type: application/json' -d '{"word":"達成キーワード","text":"お祝いの言葉"}'（GET 用のURLも、この brief のお祝いの欄にあります）`,
+      ``,
+    );
+  }
   lines.push(`■ 事件簿（あすなろ探偵事務所）`);
   for (const item of casebookView(c)) {
     const mark =
