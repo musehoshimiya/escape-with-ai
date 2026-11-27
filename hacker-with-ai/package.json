@@ -1,0 +1,1 @@
+{"description":"自分のAIと一緒に解く、正義のハッカーの復旧ゲーム。人はGUI、AIはCUI（curl）から同じセッションに参加する。遊びながらセキュリティ知識を学べる設計。","engines":{"node":">=18"},"name":"hacker-with-ai","private":true,"scripts":{"start":"node server/server.mjs"},"type":"module","version":"0.1.0"}

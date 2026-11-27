@@ -1,0 +1,419 @@
+/* hacker-with-ai — 病院の障害対応コンソールを思わせる、フラットで地に足のついた画面設計。
+   方針：グラデーションは使わない。1px の境界線、等幅フォントのアクセント、
+   状態色（平常=緑 / 注意=黄 / 警告=赤 / 情報=青）を厳密に使い分ける。 */
+
+:root {
+  --bg: #0a0e12;
+  --panel: #10161d;
+  --panel-2: #0d1218;
+  --border: #22303c;
+  --border-strong: #31424f;
+  --text: #d7e0e6;
+  --muted: #7d8fa0;
+  --faint: #54687a;
+  --ok: #3fb96f;
+  --warn: #e0a83c;
+  --alert: #e5534b;
+  --info: #4c9aff;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.mono { font-family: var(--mono); }
+.big-mono { font-family: var(--mono); font-size: 22px; letter-spacing: 0.2em; }
+
+/* ---- ステータスバー ---- */
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 18px;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--border-strong);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 14px; height: 14px;
+  background: var(--ok);
+  box-shadow: 7px 7px 0 0 var(--border-strong);
+  margin-right: 7px; margin-bottom: 7px;
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+.brand-title { font-family: var(--mono); font-weight: 700; font-size: 18px; letter-spacing: 0.04em; }
+.brand-sub { color: var(--muted); font-size: 12px; }
+.tag {
+  font-family: var(--mono); font-size: 10px; color: var(--warn);
+  border: 1px solid var(--warn); padding: 0 4px; margin-left: 4px;
+}
+.status-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.meta-item { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+.chip {
+  font-size: 12px; padding: 2px 8px; border: 1px solid; font-family: var(--mono);
+}
+.chip-alert { color: var(--alert); border-color: var(--alert); }
+
+main { max-width: 1440px; margin: 0 auto; padding: 18px; }
+
+/* ---- パネル共通 ---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.panel-title {
+  font-size: 12px; font-family: var(--mono); letter-spacing: 0.12em;
+  color: var(--muted); margin: 0 0 10px; text-transform: uppercase;
+  border-bottom: 1px solid var(--border); padding-bottom: 8px;
+}
+.note { color: var(--muted); font-size: 13px; }
+.note.err, .warn { color: var(--alert); font-size: 13px; }
+
+button {
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border-strong);
+  padding: 7px 14px; font-size: 14px; cursor: pointer; font-family: inherit;
+}
+button:hover:not(:disabled) { border-color: var(--info); color: #fff; }
+button:disabled { opacity: 0.4; cursor: default; }
+button.primary { background: #123524; border-color: var(--ok); color: #c9f2d8; }
+button.primary:hover:not(:disabled) { background: #17452c; }
+button.big { font-size: 16px; padding: 10px 22px; }
+button.ghost { border-color: transparent; color: var(--muted); }
+input[type="text"] {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border-strong);
+  padding: 8px 10px; font-size: 15px; font-family: inherit; min-width: 0;
+}
+input[type="text"]:focus { outline: 1px solid var(--info); }
+textarea {
+  width: 100%; background: var(--bg); color: var(--text);
+  border: 1px solid var(--border-strong); padding: 10px;
+  font-family: var(--mono); font-size: 12px; line-height: 1.5;
+}
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row input { flex: 1; }
+
+/* ---- 参加画面 ---- */
+.join-wrap { max-width: 760px; margin: 24px auto; }
+.join-title { font-size: 20px; margin: 4px 0 8px; }
+.lead { color: var(--muted); font-size: 14px; }
+.steps { list-style: none; margin: 18px 0 0; padding: 0; }
+.step { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--border); }
+.step-num {
+  font-family: var(--mono); width: 26px; height: 26px; flex: none;
+  border: 1px solid var(--border-strong); color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+}
+.step.active .step-num { border-color: var(--ok); color: var(--ok); }
+.step.done .step-num { background: var(--ok); border-color: var(--ok); color: #08130c; }
+.step.locked { opacity: 0.45; }
+.step-body { flex: 1; min-width: 0; }
+.step-body h2 { font-size: 15px; margin: 2px 0 8px; }
+
+/* ---- ミッションヘッダ ---- */
+.mission-head {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.mission-title { font-size: 20px; margin: 0 0 4px; }
+.goal { color: var(--muted); margin: 0; font-size: 14px; }
+.player-line { font-family: var(--mono); color: var(--muted); font-size: 13px; margin: 0; }
+
+.recovered-banner {
+  border: 1px solid var(--ok); background: #0d1f14; color: #c9f2d8;
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.banner-main { font-weight: 700; }
+.banner-sub { font-size: 14px; margin-top: 4px; }
+
+/* ---- コンソールの3カラム ---- */
+.console-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .console-grid { grid-template-columns: 240px minmax(0, 1fr); }
+  .col-log { grid-column: 1 / -1; }
+}
+@media (max-width: 720px) {
+  .console-grid { grid-template-columns: minmax(0, 1fr); }
+  .hide-sm { display: none; }
+}
+
+/* ---- 対応手順（ステッパー） ---- */
+.stages { list-style: none; margin: 0; padding: 0; counter-reset: st; }
+.stages li {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 7px 0; border-bottom: 1px dashed var(--border);
+  color: var(--faint); font-size: 14px;
+}
+.stages li:last-child { border-bottom: none; }
+.stages .st-num { font-family: var(--mono); font-size: 12px; flex: none; }
+.stages li.current { color: var(--text); }
+.stages li.current .st-num { color: var(--warn); }
+.stages li.done { color: var(--muted); }
+.stages li.done .st-num { color: var(--ok); }
+.stages .st-state { margin-left: auto; font-family: var(--mono); font-size: 11px; flex: none; }
+.stages li.current .st-state { color: var(--warn); }
+.stages li.done .st-state { color: var(--ok); }
+
+/* ---- システム一覧（スポット） ---- */
+.stage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.spot {
+  position: relative; text-align: left; padding: 12px 12px 10px;
+  background: var(--panel-2); border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 4px; min-height: 92px;
+}
+.spot::before {
+  content: ""; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--faint); position: absolute; top: 12px; right: 12px;
+}
+.spot.is-current::before { background: var(--warn); }
+.spot.is-done::before { background: var(--ok); }
+.spot:hover { border-color: var(--info); }
+.spot.flash { border-color: var(--warn); }
+.spot-label { font-weight: 700; font-size: 15px; }
+.spot-note { color: var(--muted); font-size: 12px; }
+.badge {
+  align-self: flex-start; font-family: var(--mono); font-size: 11px;
+  border: 1px solid var(--border-strong); color: var(--muted); padding: 0 6px; margin-top: auto;
+}
+.badge.done { border-color: var(--ok); color: var(--ok); }
+
+.inventory-bar {
+  margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px;
+  font-size: 14px; display: flex; gap: 10px; flex-wrap: wrap;
+}
+.inv-label { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.1em; }
+
+/* ---- キーワード ---- */
+.keywords { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.kw-chip {
+  width: 100%; text-align: left; font-size: 13px; background: var(--panel-2);
+}
+.kw-chip .kw { font-family: var(--mono); color: var(--info); }
+.kw-chip .copied { color: var(--ok); margin-left: 8px; font-size: 12px; }
+
+/* ---- ログ／ストーリー ---- */
+.log-panel { max-height: 640px; display: flex; flex-direction: column; }
+.story-panel { max-height: 82vh; display: flex; flex-direction: column; }
+.log {
+  list-style: none; margin: 0; padding: 0; overflow-y: auto;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.65;
+}
+.log li {
+  padding: 7px 8px; border-bottom: 1px solid var(--border);
+  white-space: pre-wrap; word-break: break-word; color: var(--text);
+}
+.log li.ai { color: #a8d8ff; border-left: 3px solid var(--info); }
+.log li.celebration { color: #ffe1a8; border-left: 3px solid var(--warn); background: #1d1807; }
+.log li.new { background: #131c14; }
+
+/* ノベル的な読みの体験：ストーリーは明朝系・大きめ・行間広めで、時系列に読ませる */
+.story {
+  font-family: "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+  font-size: 15.5px;
+  line-height: 1.9;
+}
+.story li {
+  padding: 10px 10px;
+  border-bottom: 1px dashed var(--border);
+}
+.story li.scene-divider {
+  text-align: center;
+  color: var(--warn);
+  letter-spacing: 0.18em;
+  font-size: 13.5px;
+  border-bottom: none;
+  padding: 16px 8px 2px;
+}
+
+/* ---- 解説 ---- */
+.debrief-item { border-top: 1px solid var(--border); padding: 10px 0; }
+.debrief-item:first-of-type { border-top: none; }
+.debrief-item h3 { font-size: 15px; margin: 0 0 6px; }
+.debrief-item p { margin: 0 0 6px; font-size: 14px; }
+.debrief-item .defense { color: var(--muted); }
+.debrief-item .defense::before {
+  content: "現実での備え："; color: var(--ok); font-family: var(--mono); font-size: 12px;
+}
+
+/* ---- ダイアログ ---- */
+.overlay {
+  position: fixed; inset: 0; background: rgba(4, 7, 10, 0.82);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 32px 14px; overflow-y: auto; z-index: 10;
+}
+.overlay[hidden] { display: none; }
+.dialog {
+  background: var(--panel); border: 1px solid var(--border-strong);
+  width: 100%; max-width: 520px; padding: 18px;
+}
+.dialog-wide { max-width: 880px; }
+.dialog-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.dialog-head h2 { font-size: 17px; margin: 0; }
+.dialog-message { color: var(--warn); font-size: 14px; min-height: 1.2em; }
+.cipher-box {
+  font-size: 16px; background: var(--bg); border: 1px solid var(--border);
+  padding: 10px 12px; word-break: break-all;
+}
+
+/* ---- メール ---- */
+.mail-wrap { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 12px; margin-top: 10px; }
+@media (max-width: 720px) { .mail-wrap { grid-template-columns: minmax(0, 1fr); } }
+.mail-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); }
+.mail-list li { border-bottom: 1px solid var(--border); }
+.mail-list li:last-child { border-bottom: none; }
+.mail-item {
+  width: 100%; text-align: left; border: none; background: transparent;
+  padding: 9px 10px; display: flex; flex-direction: column; gap: 2px;
+}
+.mail-item:hover { background: var(--panel-2); }
+.mail-item.selected { background: var(--panel-2); box-shadow: inset 3px 0 0 var(--info); }
+.mail-item .m-from { font-size: 12px; color: var(--muted); font-family: var(--mono); word-break: break-all; }
+.mail-item .m-subject { font-size: 14px; }
+.mail-item.unread .m-subject::before { content: "● "; color: var(--warn); font-size: 10px; }
+.mail-meta { font-family: var(--mono); font-size: 12.5px; color: var(--muted); margin-bottom: 8px; word-break: break-all; }
+.mail-body {
+  background: var(--bg); border: 1px solid var(--border); padding: 12px;
+  white-space: pre-wrap; word-break: break-word; font-family: inherit;
+  font-size: 14px; line-height: 1.7; min-height: 180px; margin: 0 0 12px;
+}
+
+/* ---- 押収文書（ミッション4）：文書らしい体裁と、出所情報の分離 ---- */
+.doc-sheet {
+  background: var(--bg); border: 1px solid var(--border); border-top: 4px solid var(--accent);
+  padding: 18px 20px; margin: 0 0 12px;
+}
+.doc-title { font-size: 17px; font-weight: 700; text-align: center; letter-spacing: 0.08em; margin-bottom: 12px; }
+.doc-meta {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 14px;
+  font-size: 12.5px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.doc-meta dt { color: var(--muted); font-family: var(--mono); }
+.doc-meta dd { margin: 0; }
+.doc-body {
+  white-space: pre-wrap; word-break: break-word; font-family: inherit;
+  font-size: 14px; line-height: 1.8; margin: 0; min-height: 160px;
+}
+.doc-source-box {
+  border: 1px solid var(--warn); background: var(--panel);
+  padding: 10px 14px; margin: 0 0 12px;
+}
+.doc-source-title { font-size: 12px; font-family: var(--mono); letter-spacing: 0.05em; color: var(--warn); margin-bottom: 6px; }
+.doc-source { white-space: pre-line; font-size: 13px; line-height: 1.7; margin: 0; }
+
+/* ---- ヒントの折りたたみ（デフォルト閉。見たい人だけが開く） ---- */
+.hint-fold { margin: 6px 0; }
+.hint-fold > summary {
+  cursor: pointer; font-size: 12px; color: var(--muted);
+  font-family: var(--mono); letter-spacing: 0.05em; list-style: none;
+}
+.hint-fold > summary::-webkit-details-marker { display: none; }
+.hint-fold > summary::before { content: "▸ "; }
+.hint-fold[open] > summary::before { content: "▾ "; }
+.hint-fold > summary:hover { color: var(--info); }
+.hint-fold .note { margin-top: 4px; }
+.spot-cell { display: flex; flex-direction: column; gap: 2px; }
+.spot-cell .spot { flex: 1; width: 100%; }
+.spot-hint { margin: 0; padding: 0 2px; }
+
+/* ---- 事件簿 ---- */
+.casebook { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.case-item {
+  width: 100%; text-align: left; padding: 8px 10px; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+}
+.case-item:hover { border-color: var(--info); }
+.case-item.is-current { border-color: var(--warn); cursor: default; }
+.case-item.is-cleared { opacity: 0.75; }
+.case-item.is-locked { opacity: 0.45; cursor: not-allowed; }
+.case-item.is-new { border-color: var(--info); box-shadow: 0 0 0 1px var(--info); }
+.case-item.is-new .case-status { color: var(--info); font-weight: 700; }
+#next-case-btn { margin-top: 10px; }
+.case-title { font-weight: 700; font-size: 14px; }
+.case-status { font-family: var(--mono); font-size: 11px; color: var(--muted); flex: none; }
+.case-item.is-current .case-status { color: var(--warn); }
+.case-item.is-cleared .case-status { color: var(--ok); }
+
+/* ---- ステージ（ノベルUI） ---- */
+.stage {
+  position: relative; border: 1px solid var(--border); overflow: hidden;
+  min-height: 300px; display: flex; flex-direction: column; justify-content: flex-end;
+  background: linear-gradient(180deg, #232a38 0%, #171c26 70%, #12151d 100%);
+}
+.stage.bg-hospital { background: linear-gradient(180deg, #26343a 0%, #182226 70%, #10161a 100%); }
+.stage.bg-server { background: linear-gradient(180deg, #1d2733 0%, #131a24 70%, #0d1219 100%); }
+.stage.bg-photo { background: linear-gradient(180deg, #38302a 0%, #241f1a 70%, #181410 100%); }
+.stage.bg-home { background: linear-gradient(180deg, #33302a 0%, #22201b 70%, #16140f 100%); }
+.stage.bg-office { background: linear-gradient(180deg, #2a3040 0%, #1b202e 70%, #12151f 100%); }
+.stage.bg-clear { background: linear-gradient(180deg, #2c3a34 0%, #1c2822 70%, #121a16 100%); }
+.stage.mood-alert { box-shadow: inset 0 0 0 2px var(--warn); }
+.stage-cast {
+  flex: 1; display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 18px 24px 0; gap: 8px;
+}
+.cast-slot { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.cast-slot.empty { visibility: hidden; }
+.cast-silhouette svg { width: 92px; height: 128px; opacity: 0.9; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
+.cast-img { max-height: 190px; max-width: 100%; object-fit: contain; }
+.cast-name { font-weight: 700; font-size: 14px; margin-top: 4px; }
+.cast-role { font-size: 11px; color: var(--muted); text-align: center; }
+.stage-caption {
+  font-family: serif; font-size: 15px; line-height: 1.7; text-align: center;
+  padding: 10px 18px 14px; background: rgba(0,0,0,0.35); border-top: 1px solid var(--border);
+}
+
+/* ---- ノベルパート（聞き込み） ---- */
+.novel-window {
+  margin: 0 14px 14px; padding: 12px 14px 10px; min-height: 112px;
+  background: rgba(5, 8, 12, 0.82); border: 1px solid var(--border-strong);
+  cursor: pointer;
+}
+.novel-name {
+  display: inline-block; font-weight: 700; font-size: 13px;
+  background: var(--panel-2); border: 1px solid var(--warn); color: #ffe1a8;
+  padding: 1px 10px; margin-bottom: 6px;
+}
+.novel-name[hidden] { display: none; }
+.novel-text {
+  font-family: "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+  font-size: 15.5px; line-height: 1.85; margin: 0; white-space: pre-wrap; word-break: break-word;
+}
+.novel-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.novel-progress { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+#novel-next { font-size: 12px; padding: 3px 12px; }
+/* 発言中の話者は明るく、他の話者は落とす */
+.cast-slot.speaking .cast-name { color: #ffe1a8; }
+.cast-slot.dimmed { opacity: 0.45; filter: saturate(0.55); }
+
+/* ---- バッド寄り結末バナー ---- */
+.badend-banner {
+  border: 1px solid var(--warn); background: #241d07; color: #ffe1a8;
+  padding: 12px 16px; margin-bottom: 12px;
+}
+
+/* ---- 告発ダイアログ ---- */
+.accuse-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.accuse-btn {
+  text-align: left; padding: 10px 12px; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.accuse-btn:hover { border-color: var(--warn); }
