@@ -102,7 +102,7 @@ export function applyAction(c, action) {
       c.opened[id] = true;
       return [
         MODULES[id].introText,
-        `（相方への声かけ）事件が切り替わったよ。相方のAIが前の事件のつもりで答える場合は、「briefを取り直して」と声をかけてみよう。`,
+        `（相方への声かけ）事件が切り替わったよ。相方には、相方AIパネルの「このミッションの参加プロンプト」をコピーして貼り直すと、新しい事件に追いつける。`,
       ];
     }
     return [`事件簿から「${MODULES[id].title}」を開いた。`];
@@ -177,5 +177,51 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
   }
   lines.push(``, `■ いまの事件：ミッション${m.no}「${m.title}」`, `目的：${m.goal}`, ``);
   lines.push(m.buildBrief(state(c), recentEvents, celebrateGetUrl, { celebrate: allCleared(c) }));
+  return lines.join("\n");
+}
+
+export function missionMeta(id) {
+  const m = MODULES[id];
+  return m ? { id: m.id, no: m.no, title: m.title, goal: m.goal } : null;
+}
+
+export function missionUnlocked(c, id) {
+  const idx = ORDER.indexOf(id);
+  return idx >= 0 && idx + 1 <= c.unlocked;
+}
+
+// ミッション専用 brief：そのミッションの状態・ヒントだけを載せる（他の事件の情報は混ぜない）。
+// 未解放のミッションは null を返す（相方にも先読みさせない）。
+export function buildMissionBrief(c, missionId, recentEvents, celebrateGetUrl) {
+  const meta = missionMeta(missionId);
+  if (!meta || !missionUnlocked(c, missionId)) return null;
+  const m = MODULES[missionId];
+  const st = c.states[missionId] ?? m.createState();
+  const lines = [];
+  lines.push(
+    `■ この brief はミッション${meta.no}「${meta.title}」専用です`,
+    `他の事件のヒント・資料・登場人物は、ここには含まれていません。このミッションの間は、この brief だけを見て答えてください。前の事件の知識は使わないでください。`,
+    ``,
+  );
+  lines.push(PARTNER_GUIDE, ``);
+  const base = String(celebrateGetUrl ?? "").split("/ai/celebrate-get")[0];
+  if (base) {
+    lines.push(
+      `■ 接続メモ（このセッションのエンドポイント）`,
+      `  状態とヒント集（このミッションの brief）： curl -s ${base}/ai/brief/${missionId}`,
+      `  出来事の一覧： curl -s "${base}/events?since=0"（since に最後に見た seq を入れると差分だけ返ります）`,
+      `  画面への投稿： curl -s -X POST ${base}/ai/message -H 'Content-Type: application/json' -d '{"text":"ここにメッセージ"}'`,
+      ``,
+    );
+  }
+  const celUrl = String(celebrateGetUrl ?? "").replace(
+    /word=[^&]*/,
+    `word=${encodeURIComponent(st.clearWord ?? "")}`,
+  );
+  lines.push(
+    m.buildBrief(st, recentEvents, celUrl, {
+      celebrate: missionId === "m4" && allCleared(c),
+    }),
+  );
   return lines.join("\n");
 }

@@ -58,6 +58,16 @@ try {
   const prompt = created.json.joinPrompt;
   check("参加プロンプトに brief の curl がある", prompt.includes(`/api/sessions/${sid}/ai/brief`));
   check("参加プロンプトに用語の合言葉がある", prompt.includes("ゲームの用語："));
+
+  console.log("== ミッション専用 brief と再認証プロンプトの解放ガード ==");
+  const lockedBrief = await api(`/api/sessions/${sid}/ai/brief/m2`);
+  check("未解放ミッションの専用 brief は 403", lockedBrief.status === 403);
+  const lockedPrompt = await api(`/api/sessions/${sid}/mission-prompt/m2`);
+  check("未解放ミッションの参加プロンプトは 403", lockedPrompt.status === 403);
+  const m1Brief = await api(`/api/sessions/${sid}/ai/brief/m1`);
+  check("m1 専用 brief は 200 で専用表記がある", m1Brief.status === 200 && m1Brief.text.includes("ミッション1「病院からの依頼」専用"));
+  const m1Prompt = await api(`/api/sessions/${sid}/mission-prompt/m1`);
+  check("m1 の参加プロンプトは専用 brief の URL を指す", m1Prompt.status === 200 && m1Prompt.json.prompt.includes(`/ai/brief/m1`) && m1Prompt.json.prompt.includes("破棄してください"));
   check("参加プロンプトは接続確認に絞られ、ルール詳細は載っていない（2段構え）", !prompt.includes("合言葉（大事）") && prompt.includes("案内が正本"));
   check("参加プロンプトに Gemini の一行ルールがある", prompt.includes("Gemini ではこのゲームに参加できません"));
   check("参加プロンプトに Perplexity の一行ルールがある", prompt.includes("Perplexity ではこのゲームに参加できません"));

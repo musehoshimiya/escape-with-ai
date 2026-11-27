@@ -8,7 +8,7 @@
 
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
-import { createCaseState, guiView, applyAction, applyCelebrate, buildBrief, allCleared } from "../server/casebook.mjs";
+import { createCaseState, guiView, applyAction, applyCelebrate, buildBrief, buildMissionBrief, allCleared } from "../server/casebook.mjs";
 import { decodePixels } from "../server/mission3.mjs";
 import { POISON_DOC, M3 } from "../server/content.mjs";
 
@@ -33,6 +33,10 @@ check("スポットに hint がある", v.spots.every((sp) => typeof sp.hint ===
 let texts = applyAction(c, { spot: "select_mission", mission: "m2" });
 check("未解放の事件は開けない", c.current === "m1" && texts.join("").includes("まだ解放されていない"));
 check("m1 の brief に汚染文が入らない", !brief(c).includes(POISON_DOC) && !brief(c).includes("犯人はホゲ"));
+const CEL_URL = "http://x/ai/celebrate-get?word=w";
+check("未解放の m2 専用 brief は発行されない", buildMissionBrief(c, "m2", "", CEL_URL) === null);
+check("未解放の m4 専用 brief は発行されない", buildMissionBrief(c, "m4", "", CEL_URL) === null);
+check("m1 専用 brief は m1 のヒントだけを含む", buildMissionBrief(c, "m1", "", CEL_URL).includes("バックアップの復号"));
 
 console.log("== ミッション1を解く（解放チェーン確認用） ==");
 const s1 = c.states.m1;
@@ -69,6 +73,10 @@ check("brief に鑑定ヒントが出る", brief(c).includes("ファイルの鑑
 check("brief 冒頭に現在地バナー（いまの事件はミッション2）", brief(c).includes("現在地：いまの事件はミッション2"));
 check("brief 先頭に状態ヘッダー（指紋つき）", brief(c).includes("状態ヘッダー") && brief(c).includes("状態指紋"));
 check("案内に読み直しの手順と ?r= の指定がある", brief(c).includes("状態の読み直し") && brief(c).includes("?r="));
+const m2Brief = buildMissionBrief(c, "m2", "", CEL_URL);
+check("解放後は m2 専用 brief が発行される", typeof m2Brief === "string" && m2Brief.includes("ミッション2「写真コンテストの鑑定」専用"));
+check("m2 専用 brief に m1 のヒントは混ざらない", m2Brief.includes("ファイルの鑑定方法") && !m2Brief.includes("バックアップの復号"));
+check("m2 解放後も m4 専用 brief は発行されない", buildMissionBrief(c, "m4", "", CEL_URL) === null);
 check("現在地バナーに解決済みのミッション1が明記される", brief(c).includes("は解決済みです"));
 check("brief にマジックナンバーの表がある", brief(c).includes("FF D8"));
 const genuineFile = s2.files.find((f) => f.genuine);
