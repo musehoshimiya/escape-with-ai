@@ -64,11 +64,14 @@ function casebookView(c) {
 export function guiView(c) {
   const m = mod(c);
   const v = m.guiView(state(c));
+  const all = allCleared(c);
   return {
     ...v,
+    // 達成キーワード（お祝いの合言葉）は、全事件解決までは画面に出さない。
+    clearWord: all ? v.clearWord : null,
     mission: { id: m.id, no: m.no, title: m.title, goal: m.goal },
     casebook: casebookView(c),
-    allCleared: allCleared(c),
+    allCleared: all,
   };
 }
 
@@ -120,6 +123,8 @@ export function applyAction(c, action) {
 }
 
 export function applyCelebrate(c, word, text) {
+  // お祝いは、全事件を解決した最後にだけ届ける（途中の事件の解決では出さない）。
+  if (!allCleared(c)) return { ok: false, reason: "not_all_cleared" };
   return mod(c).applyCelebrate(state(c), word, text);
 }
 
@@ -156,6 +161,6 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
     lines.push(`・ミッション${item.no}「${item.title}」：${mark}`);
   }
   lines.push(``, `■ いまの事件：ミッション${m.no}「${m.title}」`, `目的：${m.goal}`, ``);
-  lines.push(m.buildBrief(state(c), recentEvents, celebrateGetUrl));
+  lines.push(m.buildBrief(state(c), recentEvents, celebrateGetUrl, { celebrate: allCleared(c) }));
   return lines.join("\n");
 }

@@ -60,6 +60,8 @@ check("m2 の intro が返る", texts.join("").includes("あおぞら写真会")
 check("m2 の brief に汚染文が入らない", !brief(c).includes(POISON_DOC));
 applyAction(c, { spot: "guide" });
 applyAction(c, { spot: "claims" });
+check("申告はモーダル資料ではなくノベルパート（dialogues）に出る", !!guiView(c).dialogues.claims && !guiView(c).materials.claims);
+check("申告の会話は話者ごとに分かれる", guiView(c).dialogues.claims.lines.filter((l) => l.speaker).length === 4 && guiView(c).dialogues.claims.lines.some((l) => l.speaker === "田村 さくら"));
 const s2 = c.states.m2;
 for (const f of s2.files) applyAction(c, { spot: "file_open", id: f.id });
 check("全ファイル開封", guiView(c).files.every((f) => f.opened && f.detail));
@@ -76,8 +78,9 @@ check("本物を特定できる", guiView(c).identified === true);
 applyAction(c, { spot: "report" });
 check("m2 解決", guiView(c).recovered === true);
 check("m2 の報告書は3項目", guiView(c).debrief.length === 3);
-const cel2 = applyCelebrate(c, guiView(c).clearWord, "おめでとう");
-check("m2 の celebrate が通る", cel2.ok === true);
+check("m2 クリア時点では達成キーワードが出ない", guiView(c).clearWord === null);
+const cel2 = applyCelebrate(c, "あさひ", "おめでとう");
+check("m2 時点の celebrate は全事件解決前として弾かれる", cel2.ok === false && cel2.reason === "not_all_cleared");
 check("m3 が解放された", guiView(c).casebook[2].status !== "locked");
 
 console.log("== ミッション3（ステガノグラフィ） ==");

@@ -186,18 +186,16 @@ try {
   const authed = await post(`/api/sessions/${sid}/action`, { spot: "twofa", code });
   check("正しいコードで認証できる", authed.json.authDone === true);
 
-  console.log("== 復旧と celebrate ==");
+  console.log("== 復旧（お祝いはまだ出ない） ==");
   const recovered = await post(`/api/sessions/${sid}/action`, { spot: "recover" });
   check("復旧できる", recovered.json.recovered === true);
-  check("達成キーワードが画面に出る", !!recovered.json.clearWord);
+  check("ミッション1のクリア時点では達成キーワードは画面に出ない", recovered.json.clearWord === null);
   check("解説データが付く", Array.isArray(recovered.json.debrief) && recovered.json.debrief.length === 7);
   check("報告書の導入文が付く", typeof recovered.json.debriefIntro === "string" && recovered.json.debriefIntro.includes("報告書"));
-  const wrongWord = await post(`/api/sessions/${sid}/ai/celebrate`, { word: "まちがい", text: "x" });
-  check("キーワード不一致の celebrate は 400", wrongWord.status === 400);
-  const celeb = await post(`/api/sessions/${sid}/ai/celebrate`, { word: recovered.json.clearWord, text: "復旧おめでとう！" });
-  check("正しいキーワードで celebrate 成功", celeb.status === 200 && celeb.json.ok === true);
-  const again = await post(`/api/sessions/${sid}/ai/celebrate`, { word: recovered.json.clearWord, text: "x" });
-  check("celebrate の再送は 400", again.status === 400);
+  const earlyCeleb = await post(`/api/sessions/${sid}/ai/celebrate`, { word: "あおぞら", text: "x" });
+  check("全事件解決前の celebrate は 400", earlyCeleb.status === 400);
+  const briefAfter = await api(`/api/sessions/${sid}/ai/brief`);
+  check("ミッション1の brief にお祝いの欄が出ない", !briefAfter.text.includes("復旧後のお祝い") && !briefAfter.text.includes("達成キーワード：「"));
 
   console.log("== 再参加プロンプト ==");
   const rejoin = await api(`/api/sessions/${sid}/rejoin-prompt`);

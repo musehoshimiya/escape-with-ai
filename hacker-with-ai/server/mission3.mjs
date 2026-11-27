@@ -270,7 +270,7 @@ if (s.reported) return ["手紙は届け済みだ。事件は解決済みだ。"
 if (!s.extracted) return ["手紙の言葉を抽出してからでないと、届けることはできない。"];
 s.reported = true;
 return [
-`葵さんに、祖父の手紙の言葉を伝えた。葵さんはしばらく黙って写真を見つめ、それから小さく笑った。事件解決！画面に達成キーワードが表示されるので、相方AIに「ゲームのお祝い：キーワード」と伝えてほしい。`,
+`葵さんに、祖父の手紙の言葉を伝えた。葵さんはしばらく黙って写真を見つめ、それから小さく笑った。事件解決！事件簿に次の依頼が開いている。`,
 ];
 }
 default:
@@ -327,7 +327,8 @@ text: [
 },
 ];
 
-export function buildBrief(s, recentEvents, celebrateGetUrl) {
+export function buildBrief(s, recentEvents, celebrateGetUrl, opts = {}) {
+const celebrate = opts.celebrate !== false;
 const lines = [];
 lines.push(describeState(s));
 const mats = materials(s);
@@ -342,7 +343,7 @@ lines.push(
 `プレイヤーが「ゲームの用語：○○」と言ったら、次の用語集の範囲で、概念だけをやさしく説明してください。用語集に無い言葉は、一般的な概念の範囲で説明してかまいません。ただし、この事件の答えそのものは用語説明では明かさないでください。`,
 ...[...GLOSSARY, ...M3_GLOSSARY].map((g) => `- ${g.term}：${g.text}`)
 );
-if (s.reported) {
+if (s.reported && celebrate) {
 lines.push(``);
 if (s.celebrated) {
 lines.push(`■ お祝い`, `お祝いは送信済みです。`);

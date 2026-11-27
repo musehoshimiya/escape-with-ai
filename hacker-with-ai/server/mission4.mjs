@@ -348,7 +348,8 @@ text: [
 },
 ];
 
-export function buildBrief(s, recentEvents, celebrateGetUrl) {
+export function buildBrief(s, recentEvents, celebrateGetUrl, opts = {}) {
+const celebrate = opts.celebrate !== false;
 const lines = [];
 lines.push(describeState(s));
 const mats = materials(s);
@@ -365,7 +366,7 @@ lines.push(
 `プレイヤーが「ゲームの用語：○○」と言ったら、次の用語集の範囲で、概念だけをやさしく説明してください。用語集に無い言葉は、一般的な概念の範囲で説明してかまいません。ただし、この事件の答えそのものは用語説明では明かさないでください。`,
 ...[...GLOSSARY,...(s.docRead ? M4_GLOSSARY : [])].map((g) => `- ${g.term}：${g.text}`)
 );
-if (s.resolved) {
+if (s.resolved && celebrate) {
 lines.push(``);
 if (s.celebrated) {
 lines.push(`■ お祝い`, `お祝いは送信済みです。`);
