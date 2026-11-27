@@ -92,7 +92,7 @@ try {
   for (const spot of ["roster", "overview", "memo", "sns", "interview"]) {
     await api(`/api/sessions/${sid}/action`, { spot });
   }
-  const brief1 = await api(`/api/sessions/${sid}/ai/brief`);
+  const brief1 = await api(`/api/sessions/${sid}/ai/brief`, {});
   const hintMatch = brief1.text.match(/前半は管理者（.+?）の「(.+?)」をローマ字（小文字）にしたもの、後半は病院の「(.+?)」の数字/);
   const wordLabel = hintMatch[1];
   const numLabel = hintMatch[2];
@@ -116,7 +116,7 @@ try {
   const login = await api(`/api/sessions/${sid}/action`, { spot: "terminal", password });
   check("端末ログイン", login.json.loggedIn === true);
   await api(`/api/sessions/${sid}/action`, { spot: "backup" });
-  const brief2 = await api(`/api/sessions/${sid}/ai/brief`);
+  const brief2 = await api(`/api/sessions/${sid}/ai/brief`, {});
   const cipherMatch = brief2.text.match(/第(\d+)世代、暗号文「([A-Z]+)」/);
   const K = (Number(cipherMatch[1]) % 9) + 3;
   const plain = cipherMatch[2].replace(/[A-Z]/g, (c) =>
