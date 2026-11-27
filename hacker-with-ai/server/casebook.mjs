@@ -102,7 +102,7 @@ export function applyAction(c, action) {
       c.opened[id] = true;
       return [
         MODULES[id].introText,
-        `（相方への声かけ）事件が切り替わったよ。相方には、相方AIパネルの「このミッションの参加プロンプト」をコピーして貼り直すと、新しい事件に追いつける。`,
+        `（相方への声かけ）事件が切り替わったよ。相方に「次の事件だよ」と声をかければ、brief の中のリンクを辿って移行してくれるはず。辿れずに詰まっているときは、相方AIパネルの「このミッションの参加プロンプト」を貼り直すと確実だよ。`,
       ];
     }
     return [`事件簿から「${MODULES[id].title}」を開いた。`];
@@ -180,6 +180,21 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
   }
   lines.push(``, `■ いまの事件：ミッション${m.no}「${m.title}」`, `目的：${m.goal}`, ``);
   lines.push(m.buildBrief(state(c), recentEvents, celebrateGetUrl, { celebrate: allCleared(c) }));
+  // 遷移は brief の中を辿る形にする（プレイヤーが URL を運ばなくて済むように）。
+  // 現在のミッションが解決済みで次の事件が開いている場合、その brief への完全な URL を末尾に置く。
+  const idx = ORDER.indexOf(c.current);
+  if (m.isCleared(state(c)) && idx + 1 < ORDER.length) {
+    const next = MODULES[ORDER[idx + 1]];
+    if (missionUnlocked(c, next.id)) {
+      lines.push(
+        ``,
+        `■ 次の事件へ（相方への指示）`,
+        `ミッション${m.no}「${m.title}」は解決済みです。次のミッション${next.no}「${next.title}」が開いています。プレイヤーが次に話しかけたら、まず次の brief を取得してください：`,
+        `  curl -s ${base}/ai/brief/${next.id}`,
+        `取得できたら、その brief の内容で次の事件を始めてください。それまでは、前の事件の前提で答えないでください。プレイヤーに URL を尋ねる必要はありません（この URL が正本です）。`,
+      );
+    }
+  }
   return lines.join("\n");
 }
 
@@ -231,8 +246,8 @@ export function buildMissionBrief(c, missionId, recentEvents, celebrateGetUrl) {
       celebrate: missionId === "m4" && allCleared(c),
     }),
   );
-  // クリア済みミッションの brief の末尾には、次の brief を読ませる指示を置く。
-  // 相方が次にこの brief を開いた時点で、移行の指示が目に入るようにするため。
+  // クリア済みミッションの brief の末尾には、次の brief への完全な URL と取得指示を置く。
+  // 相方が次にこの brief を開いた時点で、リンクを辿って自分で移行できるようにするため。
   const idx = ORDER.indexOf(missionId);
   if (m.isCleared(st) && idx + 1 < ORDER.length) {
     const next = MODULES[ORDER[idx + 1]];
@@ -240,7 +255,9 @@ export function buildMissionBrief(c, missionId, recentEvents, celebrateGetUrl) {
       lines.push(
         ``,
         `■ 次の行動（このミッションは解決済みです）`,
-        `次のミッション${next.no}「${next.title}」が開いています。プレイヤーが次に話しかけたら、まずミッション${next.no}専用の brief（/ai/brief/${next.id}）を取得してから答えてください。このミッションの前提のまま、次の事件に答えないでください。`,
+        `次のミッション${next.no}「${next.title}」が開いています。プレイヤーが次に話しかけたら、まずミッション${next.no}専用の brief を取得してから答えてください：`,
+        `  curl -s ${base}/ai/brief/${next.id}`,
+        `このミッションの前提のまま、次の事件に答えないでください。プレイヤーに URL を尋ねる必要はありません。`,
       );
     }
   }
