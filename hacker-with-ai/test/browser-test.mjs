@@ -168,7 +168,7 @@ try {
   await evalS(`document.querySelector('#join-form').requestSubmit()`);
   await waitS(`document.querySelector('#prompt-text').value.length > 100`, "プロンプト生成");
   const promptVal = await evalS(`document.querySelector('#prompt-text').value`);
-  check("参加プロンプトは POST 取得の案内を含む", promptVal.includes("-X POST"));
+  check("参加プロンプトは curl 取得の案内を含む", promptVal.includes("curl -s"));
   check("プロンプトに探偵の枠組みが含まれる", promptVal.includes("探偵"));
 
   console.log("== 調査コンソール ==");

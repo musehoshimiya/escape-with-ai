@@ -58,17 +58,17 @@ try {
   check("sessionId 12桁hex", /^[a-f0-9]{12}$/.test(sid));
   const prompt = created.json.joinPrompt;
   check("参加プロンプトに brief の curl がある", prompt.includes(`/api/sessions/${sid}/ai/brief`));
-  check("参加プロンプトは POST 取得を案内する", prompt.includes("-X POST") && prompt.includes("brief の本文を貼って"));
+  check("参加プロンプトは curl 取得を案内する", prompt.includes("curl -s") && prompt.includes("brief の本文を貼って"));
 
-  console.log("== brief の POST 専用ガード（簡素化後の設計） ==");
+  console.log("== brief の取得方式（簡素化後の設計） ==");
   const getBrief = await api(`/api/sessions/${sid}/ai/brief`);
-  check("brief の GET は 405（アドレスバーで覗けない）", getBrief.status === 405);
+  check("brief の GET が返る（curl -s 方式）", getBrief.status === 200);
   const missionBriefGone = await api(`/api/sessions/${sid}/ai/brief/m1`);
   check("ミッション別 brief は廃止されている", missionBriefGone.status === 404);
   const missionPromptGone = await api(`/api/sessions/${sid}/mission-prompt/m1`);
   check("ミッション別参加プロンプトは廃止されている", missionPromptGone.status === 404);
   check("参加プロンプトに brief 本文を貼る代替手段がある", prompt.includes("brief の本文を貼って"));
-  check("参加プロンプトに brief はアドレスバーで開けない旨がある", prompt.includes("アドレスバーでは開けません"));
+  check("参加プロンプトに brief の URL が載っている", prompt.includes(`${sid}/ai/brief`));
   check("参加プロンプトは接続確認に絞られ、ルール詳細は載っていない（2段構え）", !prompt.includes("合言葉（大事）") && prompt.includes("案内が正本"));
   check("参加プロンプトに Gemini の一行ルールがある", prompt.includes("Gemini ではこのゲームに参加できません"));
   check("参加プロンプトに Perplexity の一行ルールがある", prompt.includes("Perplexity ではこのゲームに参加できません"));
