@@ -48,8 +48,13 @@
         <li id="step2" class="step locked">
           <span class="step-num">2</span>
           <div class="step-body">
-            <h2>プロンプトをコピーして、あなたのAIに貼る</h2>
-            <p class="note">接続方法はAIが自分で選ぶので、選ぶ必要はありません。</p>
+            <h2>相方AIに、まず brief の URL だけを送る</h2>
+            <p class="note">URL だけを単独のメッセージで送ると、AI が自分で読みに行きます。そのあと、続けて参加プロンプトを貼ってください。</p>
+            <div class="row">
+              <input id="brief-url-text" type="text" readonly placeholder="まず「調査を開始」を押してください">
+              <button id="copy-url-btn" type="button" disabled>URLをコピー</button>
+            </div>
+            <p class="note">続けて、こちらを貼ってください：</p>
             <textarea id="prompt-text" rows="10" readonly placeholder="まず「調査を開始」を押してください"></textarea>
             <div class="row">
               <button id="copy-btn" type="button" disabled>プロンプトをコピー</button>
@@ -85,7 +90,7 @@
       <div id="epilogue-line" class="banner-sub"></div>
       <div id="next-case-line" class="banner-sub"></div>
       <button id="next-case-btn" type="button" class="primary" hidden>次の事件へ進む</button>
-      <button id="partner-note-btn" type="button" hidden>相方への連絡をコピー（次の brief を読ませる）</button>
+      <button id="partner-note-btn" type="button" hidden>相方への連絡URLをコピー（次の brief）</button>
     </div>
 
     <div id="badend-banner" class="badend-banner" hidden>
