@@ -376,7 +376,7 @@ async function onSpot(spotId) {
     await postAction({ spot: "backup" });
     return;
   }
-  if (spotId === "twofa" && st.decrypted && !st.authDone) {
+  if (spotId === "twofa" && st.backup?.decrypted && !st.authDone) {
     $("twofa-message").textContent = "";
     $("twofa-dialog").hidden = false;
     $("twofa-code").value = "";
