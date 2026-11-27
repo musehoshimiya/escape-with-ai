@@ -108,6 +108,10 @@ check("メッセージは候補プールの中の言葉", M3.messages.includes(s
 check("もう一方は別の文字列（手紙ではない）", decoded.every((d) => d.id === holder.id || d.text !== s3.message));
 check("brief に抽出手順のヒントが出る", brief(c).includes("隠しメッセージの取り出し方"));
 check("brief にピクセルデータが届く", brief(c).includes("R="));
+const lsbGroups = [...brief(c).matchAll(/最下位ビット列を先頭から8つずつ区切ったもの：((?:[01]{8} )+)/g)].map((m) =>
+  m[1].trim().split(" ").map((g) => parseInt(g, 2)));
+check("brief に計算済みのビット列が併記される（画像2枚分）", lsbGroups.length === 2);
+check("ビット列を文字に直すと保持画像からメッセージが読める", lsbGroups.some((bytes) => bytes.map((b) => String.fromCharCode(b)).join("").startsWith(s3.message)));
 applyAction(c, { spot: "extract", answer: "ZZZZZZ" });
 check("違う言葉は弾かれる", guiView(c).extracted === false);
 applyAction(c, { spot: "extract", answer: s3.message.toLowerCase() });

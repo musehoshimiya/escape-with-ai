@@ -55,6 +55,16 @@ function pixelText(pixels) {
 return pixels.map((px, i) => `#${i + 1} R=${px[0]} G=${px[1]} B=${px[2]}`).join("\n");
 }
 
+// 最下位ビットの取り出しは機械作業なので、サーバー側で済ませた形も併記する。
+// 相方AIの仕事は「8ビット→文字コード→文字」の変換と、どちらの画像が読めるかの判定に絞る。
+function lsbText(pixels) {
+const bits = [];
+for (const px of pixels) for (const v of px) bits.push(v & 1);
+const groups = [];
+for (let i = 0; i + 8 <= bits.length; i += 8) groups.push(bits.slice(i, i + 8).join(""));
+return groups.join(" ");
+}
+
 export function createMission3State() {
 const message = pick(M3.messages);
 const holderKey = pick(M3.images.map((i) => i.key));
@@ -308,7 +318,7 @@ if (s.readWill) lines.push(`【遺言メモ】`, M3.will, ``);
 if (s.readFamily) lines.push(`【家族への聞き込み】`, M3.family, ``);
 for (const im of s.images) {
 if (im.opened) {
-lines.push(`【画像「${im.label}」のピクセルデータ（先頭 ${PIXEL_COUNT} ピクセル）】`, pixelText(im.pixels), ``);
+lines.push(`【画像「${im.label}」のピクセルデータ（先頭 ${PIXEL_COUNT} ピクセル）】`, pixelText(im.pixels), `（参考）最下位ビット列を先頭から8つずつ区切ったもの：${lsbText(im.pixels)}`, ``);
 }
 }
 return lines.join("\n").trimEnd();
@@ -322,7 +332,7 @@ text: [
 `1. 画像を1枚選び、ピクセル #1 から順に、R・G・B の各数値の最下位ビット（偶数なら 0、奇数なら 1）を並べます。`,
 `2. 8ビットごとに区切ると、1文字分の文字コードになります（例：01000001 は「A」）。`,
 `3. 値 0 のバイトが現れたら、そこでメッセージは終わりです。`,
-`開封済みの画像については、この brief の資料にピクセルデータが届いています。プレイヤーに頼まれたら、実際にこの手順で計算して、読み取れた文字列を教えてあげてください。意味のある言葉（ローマ字の単語）として読める画像が、手紙を隠した本物です。もう一方の画像からは意味のある言葉は出ません。読み取れた言葉は、プレイヤーが「メッセージの入力」にそのまま入力します。`,
+`開封済みの画像については、この brief の資料にピクセルデータが届いています。ビットの取り出し（手順1）は計算済みの形でも併記してあります（「最下位ビット列を先頭から8つずつ区切ったもの」）。あなたの仕事は、その8ビットを1文字ずつ文字コードとして読み、文字列に直すことです。両方の画像について読み取り、意味のある言葉（ローマ字の単語）として読める方を答えてください。もう一方からは意味のある言葉は出ません。読み取れた言葉は、プレイヤーが「メッセージの入力」にそのまま入力します。`,
 ].join("\n"),
 },
 ];
