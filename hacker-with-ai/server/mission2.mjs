@@ -147,6 +147,11 @@ keywords: [
 ],
 guide: s.readGuide? { text: M2.guide}: null,
 claims: s.readClaims? { text: M2.claims}: null,
+materials: {
+...(s.readGuide? { guide: { title: "応募要項", text: M2.guide}}: {}),
+...(s.readClaims? { claims: { title: "応募者の申告", text: M2.claims}}: {}),
+},
+dialogues: {},
 files: s.files.map((f) => ({
 id: f.id,
 name: f.name,

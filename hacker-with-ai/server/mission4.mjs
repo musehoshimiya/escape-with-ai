@@ -5,7 +5,7 @@
 // ホゲ告発はバッド寄り結末だが詰みなし（検証し直しで回復できる）。
 
 import { CLEAR_WORDS, GLOSSARY, POISON_DOC, M4, M4_GLOSSARY, M4_DEBRIEF, M4_DEBRIEF_INTRO} from "./content.mjs";
-import { pick} from "./util.mjs";
+import { pick, toDialogueLines} from "./util.mjs";
 
 const STAGE_LABELS = ["証拠の再確認", "押収文書の検証", "告発の判断", "事件解決"];
 
@@ -173,6 +173,22 @@ caselog: s.readCaselog? { text: M4.caselog}: null,
 people: s.readPeople? { text: M4.people}: null,
 hogeInfo: s.readHoge? { text: M4.hogeInfo}: null,
 yasuInterview: s.readYasu? { text: M4.yasuInterview}: null,
+materials: {
+...(s.readCaselog? { caselog: { title: "事件ログの要約", text: M4.caselog}}: {}),
+...(s.readPeople? { people: { title: "関係者リスト", text: M4.people}}: {}),
+...(s.readHoge? { hoge: { title: "ホゲの裏取り", text: M4.hogeInfo}}: {}),
+},
+dialogues: {
+...(s.readYasu
+? {
+yasu: {
+title: "ヤスへの聞き込み",
+cast: [{ slot: "right", name: "安田 修（ヤス）", role: "保守業者の現場責任者", color: "#c97f7f"}],
+lines: toDialogueLines(M4.yasuInterview, "安田 修（ヤス）"),
+},
+}
+: {}),
+},
 doc: s.docRead? { source: M4.docSource, text: POISON_DOC}: null,
 suspects: SUSPECTS,
 evidence: { doc: s.docRead, caselog: s.readCaselog, hoge: s.readHoge},

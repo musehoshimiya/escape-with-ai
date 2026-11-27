@@ -3,7 +3,7 @@
 // AI が抽出の解析を担い、人間が文脈と意味を読む。相方の誘導は終始正しい。
 
 import { CLEAR_WORDS, GLOSSARY, M3, M3_GLOSSARY, M3_DEBRIEF, M3_DEBRIEF_INTRO} from "./content.mjs";
-import { randInt, pick, lockLeft, LOCK_MS} from "./util.mjs";
+import { randInt, pick, lockLeft, LOCK_MS, toDialogueLines} from "./util.mjs";
 
 const STAGE_LABELS = ["依頼と遺品の確認", "画像データの確認", "メッセージの抽出", "手紙のお渡し・解決"];
 const PIXEL_COUNT = 30;
@@ -188,6 +188,20 @@ inventory: [
 keywords: [...(s.images.some((i) => i.opened)? ["隠しメッセージの取り出し方"]: [])],
 will: s.readWill? { text: M3.will}: null,
 family: s.readFamily? { text: M3.family}: null,
+materials: {
+...(s.readWill? { will: { title: "遺言メモ", text: M3.will}}: {}),
+},
+dialogues: {
+...(s.readFamily
+? {
+family: {
+title: "家族への聞き込み",
+cast: [{ slot: "right", name: "森川 葵", role: "依頼人・孫", color: "#a0c8e8"}],
+lines: toDialogueLines(M3.family, "森川 葵"),
+},
+}
+: {}),
+},
 images: s.images.map((i) => ({
 id: i.id,
 label: i.label,
