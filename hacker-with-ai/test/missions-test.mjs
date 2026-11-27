@@ -64,6 +64,8 @@ const s2 = c.states.m2;
 for (const f of s2.files) applyAction(c, { spot: "file_open", id: f.id });
 check("全ファイル開封", guiView(c).files.every((f) => f.opened && f.detail));
 check("brief に鑑定ヒントが出る", brief(c).includes("ファイルの鑑定方法"));
+check("brief 冒頭に現在地バナー（いまの事件はミッション2）", brief(c).includes("現在地：いまの事件はミッション2"));
+check("現在地バナーに解決済みのミッション1が明記される", brief(c).includes("は解決済みです"));
 check("brief にマジックナンバーの表がある", brief(c).includes("FF D8"));
 const genuineFile = s2.files.find((f) => f.genuine);
 const decoyFile = s2.files.find((f) => !f.genuine);

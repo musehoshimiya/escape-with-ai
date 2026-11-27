@@ -127,6 +127,16 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
   const m = mod(c);
   const lines = [];
   lines.push(PARTNER_GUIDE, ``);
+  // 現在地バナー：相方AIが「前の事件にいる」と取り違える事故への対策として、
+  // brief の冒頭で、いまの事件と解決済みの事件を言い切る。
+  const cleared = casebookView(c).filter((x) => x.status === "cleared");
+  lines.push(
+    `■ 現在地：いまの事件はミッション${m.no}「${m.title}」です。` +
+      (cleared.length
+        ? `（${cleared.map((x) => `ミッション${x.no}「${x.title}」`).join("、")}は解決済みです。その事件のヒント・資料・登場人物は、いまの事件では使えません）`
+        : ``),
+    ``,
+  );
   // エンドポイントの開示は brief（第2段）側で行う。参加プロンプト（第1段）には brief の URL だけを載せる。
   const base = String(celebrateGetUrl ?? "").split("/ai/celebrate-get")[0];
   if (base) {
