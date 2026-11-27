@@ -37,6 +37,8 @@ $("join-form").addEventListener("submit", async (e) => {
     history.replaceState(null, "", `?session=${sessionId}`);
     $("prompt-text").value = data.joinPrompt;
     $("copy-btn").disabled = false;
+    $("brief-url-text").value = `${location.origin}/api/sessions/${sessionId}/ai/brief`;
+    $("copy-url-btn").disabled = false;
     $("go-room-btn").disabled = false;
     setStep(1, "done");
     setStep(2, "active");
@@ -45,6 +47,18 @@ $("join-form").addEventListener("submit", async (e) => {
     errEl.textContent = "セッションの作成に失敗しました。通信環境を確認して、もう一度試してください。";
     errEl.hidden = false;
   }
+});
+
+$("copy-url-btn").addEventListener("click", async () => {
+  const t = $("brief-url-text");
+  try {
+    await navigator.clipboard.writeText(t.value);
+  } catch {
+    t.select();
+    document.execCommand("copy");
+  }
+  $("copy-url-btn").textContent = "コピーしました";
+  setTimeout(() => ($("copy-url-btn").textContent = "URLをコピー"), 2500);
 });
 
 $("copy-btn").addEventListener("click", async () => {
@@ -213,13 +227,12 @@ function render(state) {
       const noteBtn = $("partner-note-btn");
       noteBtn.hidden = false;
       noteBtn.onclick = async () => {
-        const cur = state.mission;
+        // URL だけを単独で送るのが一番効く（長い文に埋めると AI が読みに行かない）。
         const briefUrl = `${location.origin}/api/sessions/${sessionId}/ai/brief/${next.id}`;
-        const note = `ミッション${cur.no}「${cur.title}」を解決したよ。次のミッション${next.no}「${next.title}」が開いたから、次に答える前に、このミッション専用の brief を読んで：${briefUrl} （URLが開けない環境なら言って。本文を貼るから）`;
         try {
-          await navigator.clipboard.writeText(note);
+          await navigator.clipboard.writeText(briefUrl);
           noteBtn.textContent = "コピーしました";
-          setTimeout(() => (noteBtn.textContent = "相方への連絡をコピー（次の brief を読ませる）"), 2500);
+          setTimeout(() => (noteBtn.textContent = "相方への連絡URLをコピー（次の brief）"), 2500);
         } catch {
           /* コピーできない環境では何もしない */
         }
