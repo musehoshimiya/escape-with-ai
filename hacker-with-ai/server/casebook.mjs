@@ -134,6 +134,18 @@ export function applyCelebrate(c, word, text) {
 export function buildBrief(c, recentEvents, celebrateGetUrl) {
   const m = mod(c);
   const lines = [];
+  // 状態ヘッダー：相方AIが古い brief の読み取りで答え続ける事故への対策。
+  // 事件と状態指紋を先頭に置き、「違ったら前の内容は破棄」と言い切る。
+  const fp =
+    ORDER.map((id) => {
+      const st = c.states?.[id];
+      if (!st) return "-";
+      return MODULES[id].isCleared(st) ? "1" : "0";
+    }).join("") + `@${c.current}/u${c.unlocked}`;
+  lines.push(
+    `■ 状態ヘッダー（取得のたびに確認）：いまの事件はミッション${m.no}「${m.title}」。状態指紋：${fp}。前に読んだ brief と指紋や事件が違っていたら、前の brief で覚えたヒント・資料・登場人物は破棄して、この brief だけを正としてください。`,
+    ``,
+  );
   lines.push(PARTNER_GUIDE, ``);
   // 現在地バナー：相方AIが「前の事件にいる」と取り違える事故への対策として、
   // brief の冒頭で、いまの事件と解決済みの事件を言い切る。

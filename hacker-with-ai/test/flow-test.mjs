@@ -81,7 +81,8 @@ try {
   console.log("== brief（資料未読の時点） ==");
   const brief0 = await api(`/api/sessions/${sid}/ai/brief`);
   check("brief が返る", brief0.status === 200);
-  check("brief の冒頭に相方への案内（第2段）がある", brief0.text.startsWith("■ 相方への案内"));
+  check("brief の冒頭に相方への案内（第2段）がある", brief0.text.slice(0, 800).includes("■ 相方への案内"));
+  check("brief は状態ヘッダーで始まる", brief0.text.startsWith("■ 状態ヘッダー"));
   check("案内に合言葉のルールが含まれる", brief0.text.includes("合言葉（大事）") && brief0.text.includes("ゲームのヒント："));
   check("案内にお祝いの作法が含まれる", brief0.text.includes("ゲームのお祝い："));
   check("案内に POST 握りつぶしの作法がある", brief0.text.includes("握りつぶす"));
