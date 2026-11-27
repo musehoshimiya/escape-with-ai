@@ -11,8 +11,8 @@ let pollTimer = null;
 let prevNotes = {};
 let latestState = null;
 let selectedMailId = null;
-
-const STAGE_SPOTS = { 1: "mail", 2: "terminal", 3: "backup", 4: "twofa", 5: "recover" };
+let selectedFileId = null;
+let selectedImageId = null;
 
 function setStep(n, mode) {
   const el = $(`step${n}`);
@@ -126,6 +126,14 @@ function appendLog(ev, isNewest) {
   const li = document.createElement("li");
   if (ev.kind === "ai") li.className = "ai";
   if (ev.kind === "celebration") li.className = "celebration";
+  if (ev.kind === "scene") {
+    li.className = "scene-divider";
+    li.textContent = `―― ${ev.text} ――`;
+    const log0 = $("log");
+    log0.appendChild(li);
+    log0.scrollTop = log0.scrollHeight;
+    return;
+  }
   if (isNewest) li.classList.add("new");
   li.textContent = ev.text;
   // ノベル的な読み：時系列に下へ積み、読み返せるようにする
@@ -134,33 +142,28 @@ function appendLog(ev, isNewest) {
   log.scrollTop = log.scrollHeight;
 }
 
-function appendSceneDivider(label) {
-  const li = document.createElement("li");
-  li.className = "scene-divider";
-  li.textContent = `―― ${label} ――`;
-  $("log").appendChild(li);
-}
-
 function render(state) {
   latestState = state;
-  $("player-line").textContent = `探偵：${state.name} ／ 進行 ${state.stage} / 6`;
+  if (state.mission) {
+    $("mission-title").textContent = `ミッション${state.mission.no}：${state.mission.title}`;
+    $("mission-goal").textContent = `依頼内容：${state.mission.goal} 手がかりは画面の中、組み立て方と照合は相方のAIが知っている。`;
+  }
+  $("player-line").textContent = `探偵：${state.name} ／ 事件 ${state.mission ? state.mission.no : 1} ・ 進行 ${state.stage} / ${state.stages.length}`;
+
+  $("badend-banner").hidden = !state.badEnd;
+  if (state.badEnd) $("badend-line").textContent = state.badEndText ?? "";
+
+  renderCasebook(state);
+  renderStage(state);
 
   $("recovered-banner").hidden = !state.recovered;
+  if (state.recovered && state.clearMessage) $("banner-main").textContent = state.clearMessage;
   if (state.recovered && state.clearWord) {
     $("clear-word-line").textContent = state.celebrated
       ? ""
       : `達成キーワードは「${state.clearWord}」。AIに「ゲームのお祝い：${state.clearWord}」と話しかけてみよう。`;
     $("celebrated-line").textContent = state.celebrated ? "🎉 AIからお祝いが届いたよ" : "";
     $("epilogue-line").textContent = state.epilogue ?? "";
-  }
-
-  // 場面の切り替わり：ステージが進んだらストーリーに区切りを入れる
-  if (render.prevStage == null) {
-    appendSceneDivider(state.stages[state.stage - 1].label);
-    render.prevStage = state.stage;
-  } else if (state.stage > render.prevStage) {
-    appendSceneDivider(state.stages[state.stage - 1].label);
-    render.prevStage = state.stage;
   }
 
   // 対応手順（ステッパー）
@@ -187,15 +190,17 @@ function render(state) {
 
   // システム一覧（スポット）。状態が変わった時だけ作り直す（クリック中の差し替え防止）。
   const spotsSig = state.spots
-    .map((sp) => [sp.id, sp.note, sp.badge, sp.done].join(":"))
+    .map((sp) => [sp.id, sp.note, sp.badge, sp.done, sp.hint ?? ""].join(":"))
     .join("|") + `#${state.stage}`;
   const stage = $("spots");
   if (spotsSig !== render.prevSpotsSig) {
     render.prevSpotsSig = spotsSig;
     stage.innerHTML = "";
     for (const sp of state.spots) {
+      const cell = document.createElement("div");
+      cell.className = "spot-cell";
       const b = document.createElement("button");
-      b.className = "spot" + (sp.done ? " is-done" : STAGE_SPOTS[state.stage] === sp.id ? " is-current" : "");
+      b.className = "spot" + (sp.done ? " is-done" : state.currentSpot === sp.id ? " is-current" : "");
       b.dataset.spot = sp.id;
       const label = document.createElement("span");
       label.className = "spot-label";
@@ -215,7 +220,20 @@ function render(state) {
       }
       prevNotes[sp.id] = sp.note;
       b.addEventListener("click", () => onSpot(sp.id));
-      stage.appendChild(b);
+      cell.appendChild(b);
+      // ヒント文は折りたたみ（デフォルト閉）。見たい人だけが開く。
+      if (sp.hint) {
+        const fold = document.createElement("details");
+        fold.className = "hint-fold spot-hint";
+        const sum = document.createElement("summary");
+        sum.textContent = "ヒント";
+        const hp = document.createElement("p");
+        hp.className = "note";
+        hp.textContent = sp.hint;
+        fold.append(sum, hp);
+        cell.appendChild(fold);
+      }
+      stage.appendChild(cell);
     }
   }
 
@@ -253,6 +271,10 @@ function render(state) {
   }
 
   renderMailDialog(state);
+  renderFilesDialog(state);
+  renderImagesDialog(state);
+  renderDocDialog(state);
+  renderAccuseDialog(state);
   renderDialogFields(state);
 
   // キーワード
@@ -349,6 +371,224 @@ function renderDialogFields(state) {
   if (state.challenge != null) $("twofa-challenge").textContent = state.challenge;
 }
 
+
+// ---- 事件簿 ----
+
+function renderCasebook(state) {
+  if (!state.casebook) return;
+  const sig = state.casebook.map((c) => `${c.id}:${c.status}`).join("|");
+  if (sig === render.prevCaseSig) return;
+  render.prevCaseSig = sig;
+  const ul = $("casebook");
+  ul.innerHTML = "";
+  for (const c of state.casebook) {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.className = "case-item" + (c.status === "current" ? " is-current" : c.status === "cleared" ? " is-cleared" : c.status === "locked" ? " is-locked" : "");
+    b.disabled = c.status === "locked" || c.status === "current";
+    const title = document.createElement("span");
+    title.className = "case-title";
+    title.textContent = `${c.no}. ${c.title}`;
+    const st = document.createElement("span");
+    st.className = "case-status";
+    st.textContent = c.status === "cleared" ? "解決済み" : c.status === "current" ? "対応中" : c.status === "locked" ? "未解放" : "未解決";
+    b.append(title, st);
+    b.addEventListener("click", async () => {
+      for (const d of ["mail-dialog", "files-dialog", "images-dialog", "doc-dialog", "accuse-dialog"]) closeDialog(d);
+      await postAction({ spot: "select_mission", mission: c.id });
+    });
+    li.appendChild(b);
+    ul.appendChild(li);
+  }
+}
+
+// ---- ステージ（ノベルUI） ----
+// 立ち絵はプレースホルダのシルエット。cast に img があれば実素材の <img> に差し替わる。
+
+function silhouetteSVG(color) {
+  return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="50" cy="34" r="20" fill="${color}"/><path d="M14 140c2-34 16-52 36-52s34 18 36 52z" fill="${color}"/></svg>`;
+}
+
+function renderStage(state) {
+  if (!state.scene) return;
+  const sc = state.scene;
+  const sig = [sc.key, sc.mood, (sc.cast ?? []).map((c) => `${c.slot}:${c.name}:${c.tone}:${c.img ?? ""}`).join(","), sc.caption].join("|");
+  if (sig === render.prevSceneSig) return;
+  render.prevSceneSig = sig;
+  const stage = $("stage");
+  stage.className = `stage bg-${sc.bg} mood-${sc.mood}`;
+  const cast = $("stage-cast");
+  cast.innerHTML = "";
+  for (const slot of ["left", "center", "right"]) {
+    const member = (sc.cast ?? []).find((c) => c.slot === slot);
+    const div = document.createElement("div");
+    div.className = `cast-slot slot-${slot}` + (member ? "" : " empty");
+    if (member) {
+      if (member.img) {
+        const img = document.createElement("img");
+        img.src = member.img;
+        img.alt = member.name;
+        img.className = "cast-img";
+        div.appendChild(img);
+      } else {
+        const ph = document.createElement("div");
+        ph.className = "cast-silhouette";
+        ph.innerHTML = silhouetteSVG(member.color ?? "#8a93a6");
+        div.appendChild(ph);
+      }
+      const name = document.createElement("div");
+      name.className = "cast-name";
+      name.textContent = member.name;
+      const role = document.createElement("div");
+      role.className = "cast-role";
+      role.textContent = member.tone ? `${member.role}（${member.tone}）` : member.role;
+      div.append(name, role);
+    }
+    cast.appendChild(div);
+  }
+  $("stage-caption").textContent = sc.caption ?? "";
+}
+
+// ---- ファイル鑑定ダイアログ（ミッション2） ----
+
+function renderFilesDialog(state) {
+  if ($("files-dialog").hidden || !state.files) return;
+  $("files-lock-note").hidden = !(state.filesLockSeconds > 0);
+  if (state.filesLockSeconds > 0) {
+    $("files-lock-note").textContent = `鑑定アラートのため、応募フォルダは一時ロックされています（あと約${state.filesLockSeconds}秒）。`;
+  }
+  const sig = state.files.map((f) => `${f.id}:${f.opened ? 1 : 0}`).join("|") + `#${state.identified}`;
+  if (sig === render.prevFilesSig) return;
+  render.prevFilesSig = sig;
+  const list = $("file-list");
+  list.innerHTML = "";
+  for (const f of state.files) {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.className = "mail-item" + (f.opened ? "" : " unread") + (f.id === selectedFileId ? " selected" : "");
+    const nm = document.createElement("span");
+    nm.className = "m-from";
+    nm.textContent = f.name;
+    const meta = document.createElement("span");
+    meta.className = "m-subject";
+    meta.textContent = `申告者：${f.entrant}／${f.size}${f.opened ? "／開封済み" : ""}`;
+    b.append(nm, meta);
+    b.addEventListener("click", () => selectFile(f.id));
+    li.appendChild(b);
+    list.appendChild(li);
+  }
+  showSelectedFile(state);
+}
+
+function showSelectedFile(state) {
+  const f = (state.files ?? []).find((x) => x.id === selectedFileId);
+  if (!f) {
+    $("file-meta").textContent = "左の一覧からファイルを選んでください。";
+    $("file-body").textContent = "";
+    $("file-verdict-btn").disabled = true;
+    return;
+  }
+  $("file-meta").textContent = `${f.name}（申告者：${f.entrant}、サイズ：${f.size}）`;
+  $("file-body").textContent = f.detail
+    ? `先頭バイト（ヘッダ）：${f.detail.header}
+メタデータ：${f.detail.exif}`
+    : "（未開封です。選ぶと開封します）";
+  $("file-verdict-btn").disabled = !f.opened || state.identified || state.filesLockSeconds > 0;
+  $("file-verdict-btn").textContent = state.identified ? "本物の応募作品は特定済み" : "これが本物の応募作品だと特定する";
+}
+
+async function selectFile(id) {
+  selectedFileId = id;
+  const st = latestState;
+  const f = st?.files?.find((x) => x.id === id);
+  if (f && !f.opened) await postAction({ spot: "file_open", id });
+  if (latestState) showSelectedFile(latestState);
+}
+
+// ---- 画像データダイアログ（ミッション3） ----
+
+function renderImagesDialog(state) {
+  if ($("images-dialog").hidden || !state.images) return;
+  const sig = state.images.map((i) => `${i.id}:${i.opened ? 1 : 0}`).join("|");
+  if (sig === render.prevImagesSig) return;
+  render.prevImagesSig = sig;
+  const list = $("image-list");
+  list.innerHTML = "";
+  for (const im of state.images) {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.className = "mail-item" + (im.opened ? "" : " unread") + (im.id === selectedImageId ? " selected" : "");
+    const nm = document.createElement("span");
+    nm.className = "m-from";
+    nm.textContent = im.label;
+    const meta = document.createElement("span");
+    meta.className = "m-subject";
+    meta.textContent = im.opened ? "開封済み（ピクセルデータ表示中）" : "未開封";
+    b.append(nm, meta);
+    b.addEventListener("click", () => selectImage(im.id));
+    li.appendChild(b);
+    list.appendChild(li);
+  }
+  showSelectedImage(state);
+}
+
+function showSelectedImage(state) {
+  const im = (state.images ?? []).find((x) => x.id === selectedImageId);
+  if (!im) {
+    $("image-meta").textContent = "左の一覧から画像を選んでください。";
+    $("image-body").textContent = "";
+    return;
+  }
+  $("image-meta").textContent = im.label;
+  $("image-body").textContent = im.pixels ?? "（未開封です。選ぶと開封します）";
+}
+
+async function selectImage(id) {
+  selectedImageId = id;
+  const st = latestState;
+  const im = st?.images?.find((x) => x.id === id);
+  if (im && !im.opened) await postAction({ spot: "image_open", id });
+  if (latestState) showSelectedImage(latestState);
+}
+
+// ---- 押収文書ダイアログ（ミッション4） ----
+
+function renderDocDialog(state) {
+  if ($("doc-dialog").hidden || !state.doc) return;
+  $("doc-source").textContent = state.doc.source;
+  $("doc-body").textContent = state.doc.text;
+}
+
+// ---- 告発ダイアログ（ミッション4） ----
+
+function renderAccuseDialog(state) {
+  if ($("accuse-dialog").hidden || !state.suspects) return;
+  const sig = state.suspects.map((x) => x.id).join("|") + `#${state.resolved}`;
+  if (sig === render.prevAccuseSig) return;
+  render.prevAccuseSig = sig;
+  const list = $("accuse-list");
+  list.innerHTML = "";
+  for (const su of state.suspects) {
+    const b = document.createElement("button");
+    b.className = "accuse-btn";
+    const nm = document.createElement("span");
+    nm.className = "spot-label";
+    nm.textContent = su.name;
+    const role = document.createElement("span");
+    role.className = "spot-note";
+    role.textContent = su.role;
+    b.append(nm, role);
+    b.addEventListener("click", async () => {
+      const { state: st2, newest } = await postAction({ spot: "accuse", suspect: su.id });
+      $("accuse-message").textContent = newest ? newest.text : "";
+      if (st2 && (st2.resolved || st2.badEnd)) {
+        setTimeout(() => closeDialog("accuse-dialog"), 1500);
+      }
+    });
+    list.appendChild(b);
+  }
+}
+
 // ---- スポット操作 ----
 
 async function onSpot(spotId) {
@@ -383,6 +623,48 @@ async function onSpot(spotId) {
     setTimeout(() => $("twofa-code").focus(), 50);
     return;
   }
+  if (spotId === "files") {
+    $("file-message").textContent = "";
+    $("files-dialog").hidden = false;
+    render.prevFilesSig = null;
+    renderFilesDialog(st);
+    return;
+  }
+  if (spotId === "images") {
+    $("image-message").textContent = "";
+    $("images-dialog").hidden = false;
+    render.prevImagesSig = null;
+    renderImagesDialog(st);
+    return;
+  }
+  if (spotId === "extract") {
+    if (st.images?.some((i) => i.opened) && !st.extracted) {
+      $("extract-message").textContent = "";
+      $("extract-dialog").hidden = false;
+      $("extract-answer").value = "";
+      setTimeout(() => $("extract-answer").focus(), 50);
+      return;
+    }
+    await postAction({ spot: spotId });
+    return;
+  }
+  if (spotId === "doc") {
+    const { state } = await postAction({ spot: "doc" });
+    if (state?.doc) {
+      $("doc-message").textContent = "";
+      $("doc-dialog").hidden = false;
+      renderDocDialog(state);
+    }
+    return;
+  }
+  if (spotId === "accuse") {
+    if (st.resolved) return;
+    $("accuse-message").textContent = "";
+    $("accuse-dialog").hidden = false;
+    render.prevAccuseSig = null;
+    renderAccuseDialog(st);
+    return;
+  }
   await postAction({ spot: spotId });
 }
 
@@ -394,6 +676,11 @@ for (const [btn, dlg] of [
   ["terminal-close", "terminal-dialog"],
   ["backup-close", "backup-dialog"],
   ["twofa-close", "twofa-dialog"],
+  ["files-close", "files-dialog"],
+  ["images-close", "images-dialog"],
+  ["extract-close", "extract-dialog"],
+  ["doc-close", "doc-dialog"],
+  ["accuse-close", "accuse-dialog"],
 ]) {
   $(btn).addEventListener("click", () => closeDialog(dlg));
   $(dlg).addEventListener("click", (e) => {
@@ -407,6 +694,31 @@ $("mail-judge-btn").addEventListener("click", async () => {
   $("mail-message").textContent = newest ? newest.text : "";
   if (state && state.judged) {
     setTimeout(() => closeDialog("mail-dialog"), 1200);
+  }
+});
+
+$("file-verdict-btn").addEventListener("click", async () => {
+  if (!selectedFileId) return;
+  const { state, newest } = await postAction({ spot: "file_verdict", id: selectedFileId });
+  $("file-message").textContent = newest ? newest.text : "";
+  if (state && state.identified) {
+    setTimeout(() => closeDialog("files-dialog"), 1200);
+  }
+});
+
+$("extract-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const answer = $("extract-answer").value.trim();
+  if (!answer) {
+    $("extract-message").textContent = "言葉を入力してね。";
+    return;
+  }
+  const { state, newest } = await postAction({ spot: "extract", answer });
+  if (state && state.extracted) {
+    closeDialog("extract-dialog");
+  } else {
+    $("extract-message").textContent = newest ? newest.text : "照合できなかった。";
+    $("extract-answer").select();
   }
 });
 

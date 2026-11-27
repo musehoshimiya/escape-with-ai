@@ -16,9 +16,9 @@
     </div>
   </div>
   <div class="status-meta">
-    <span class="meta-item">依頼主：あおぞら記念病院</span>
+    <span class="meta-item">あすなろ探偵事務所・事件簿</span>
     <span class="meta-item hide-sm">調査コンソール</span>
-    <span class="chip chip-alert">システム乗っ取り事件・調査中</span>
+    <span class="chip chip-alert">事件簿・調査中</span>
   </div>
 </header>
 
@@ -72,21 +72,33 @@
   <section id="view-room" hidden>
     <div class="mission-head">
       <div>
-        <h1 class="mission-title">ミッション1：病院からの依頼</h1>
-        <p class="goal">依頼内容：乗っ取られた病院のシステムを調べて、取り戻すこと。手がかりは画面の中、組み立て方と照合は相方のAIが知っている。</p>
+        <h1 class="mission-title" id="mission-title">ミッション1：病院からの依頼</h1>
+        <p class="goal" id="mission-goal">依頼内容：乗っ取られた病院のシステムを調べて、取り戻すこと。手がかりは画面の中、組み立て方と照合は相方のAIが知っている。</p>
       </div>
       <p id="player-line" class="player-line"></p>
     </div>
 
     <div id="recovered-banner" class="recovered-banner" hidden>
-      <span class="banner-main">事件解決！病院システムは復旧したよ。おつかれさま。</span>
+      <span class="banner-main" id="banner-main">事件解決！</span>
       <div id="clear-word-line" class="banner-sub"></div>
       <div id="celebrated-line" class="banner-sub"></div>
       <div id="epilogue-line" class="banner-sub"></div>
     </div>
 
+    <div id="badend-banner" class="badend-banner" hidden>
+      <span class="banner-main">告発は、本当に正しかったのだろうか。</span>
+      <div id="badend-line" class="banner-sub"></div>
+      <p class="note">詰みではありません。「検証し直す」スポットから告発を取り下げて、証拠を確かめ直せます。</p>
+    </div>
+
     <div class="console-grid">
       <div class="col col-side">
+        <div class="panel">
+          <h2 class="panel-title">事件簿</h2>
+          <ul id="casebook" class="casebook"></ul>
+          <p class="note">事件を解決すると、次の依頼が開きます。解決済みの事件は読み返せます（手がかりと報告書は事件ごとに残ります）。</p>
+        </div>
+
         <div class="panel">
           <h2 class="panel-title">調査の手順</h2>
           <ol id="stages" class="stages"></ol>
@@ -95,7 +107,10 @@
         <div class="panel">
           <h2 class="panel-title">AIに聞いてみよう</h2>
           <p class="note">詰まったら合言葉を、言葉の意味が分からなければ「ゲームの用語：○○」を、あなたのAIに聞いてみてください。</p>
-          <ul id="keywords" class="keywords"></ul>
+          <details class="hint-fold" id="keywords-fold">
+            <summary>ヒントのキーワードを見る（見たい人だけ）</summary>
+            <ul id="keywords" class="keywords"></ul>
+          </details>
         </div>
 
         <div class="panel">
@@ -106,9 +121,17 @@
       </div>
 
       <div class="col col-main">
+        <div class="panel stage-panel">
+          <h2 class="panel-title">ステージ</h2>
+          <div id="stage" class="stage bg-office">
+            <div id="stage-cast" class="stage-cast"></div>
+            <div id="stage-caption" class="stage-caption"></div>
+          </div>
+        </div>
+
         <div class="panel story-panel">
-          <h2 class="panel-title">ストーリー</h2>
-          <p class="note">調査の出来事はここに時系列で残ります。あとから読み返せます。</p>
+          <h2 class="panel-title">バックログ</h2>
+          <p class="note">物語と調査の記録はここに時系列で残ります。読み返して、証拠や証言を確かめられます。</p>
           <ul id="log" class="log story"></ul>
         </div>
 
@@ -139,7 +162,10 @@
       <h2>院内メール</h2>
       <button id="mail-close" type="button" class="ghost">閉じる</button>
     </div>
-    <p class="note">障害に関する通知が複数届いている。本物は1通だけ。送信元とリンク先をよく見て、本物だと思う通知を「本物として採用」してほしい。</p>
+    <details class="hint-fold">
+      <summary>ヒント（見たい人だけ）</summary>
+      <p class="note">障害に関する通知が複数届いている。本物は1通だけ。送信元とリンク先をよく見て、本物だと思う通知を「本物として採用」してほしい。</p>
+    </details>
     <p id="mail-lock-note" class="warn" hidden></p>
     <div class="mail-wrap">
       <ul id="mail-list" class="mail-list"></ul>
@@ -169,7 +195,11 @@
         <button type="submit" class="primary">ログイン</button>
       </div>
     </form>
-    <p class="note">3回間違えると1分ほどロックされます。組み立て方は相方のAIが知っています。</p>
+    <p class="note">3回間違えると1分ほどロックされます。</p>
+    <details class="hint-fold">
+      <summary>ヒント（見たい人だけ）</summary>
+      <p class="note">組み立て方は相方のAIが知っています。集めた資料をAIに伝えて、相談してみてください。</p>
+    </details>
     <p id="terminal-message" class="dialog-message"></p>
   </div>
 </div>
@@ -189,7 +219,10 @@
         <button type="submit" class="primary">復号する</button>
       </div>
     </form>
-    <p class="note">復号の手順は相方のAIが持っています。暗号文と世代番号をAIに伝えてみてください。</p>
+    <details class="hint-fold">
+      <summary>ヒント（見たい人だけ）</summary>
+      <p class="note">復号の手順は相方のAIが持っています。暗号文と世代番号をAIに伝えてみてください。</p>
+    </details>
     <p id="backup-message" class="dialog-message"></p>
   </div>
 </div>
@@ -208,8 +241,113 @@
         <button type="submit" class="primary">認証</button>
       </div>
     </form>
-    <p class="note">コードは、チャレンジと相方のAIだけが知る情報から作ります。チャレンジの数字をAIに伝えてみてください。3回間違えると1分ほどロックされます。</p>
+    <p class="note">3回間違えると1分ほどロックされます。</p>
+    <details class="hint-fold">
+      <summary>ヒント（見たい人だけ）</summary>
+      <p class="note">コードは、チャレンジと相方のAIだけが知る情報から作ります。チャレンジの数字をAIに伝えてみてください。</p>
+    </details>
     <p id="twofa-message" class="dialog-message"></p>
+  </div>
+</div>
+
+
+<!-- ファイル鑑定ダイアログ（ミッション2） -->
+<div id="files-dialog" class="overlay" hidden>
+  <div class="dialog dialog-wide">
+    <div class="dialog-head">
+      <h2>応募フォルダ</h2>
+      <button id="files-close" type="button" class="ghost">閉じる</button>
+    </div>
+    <details class="hint-fold">
+      <summary>ヒント（見たい人だけ）</summary>
+      <p class="note">ファイルを選ぶと、先頭バイト（ヘッダ）とメタデータが見られます。ファイル名の拡張子は中身と一致するとは限りません。本物の応募作品だと思うものを「本物として特定」してください。間違えるとアラート、2回でロックされます。</p>
+    </details>
+    <p id="files-lock-note" class="warn" hidden></p>
+    <div class="mail-wrap">
+      <ul id="file-list" class="mail-list"></ul>
+      <div class="mail-body-pane">
+        <div id="file-meta" class="mail-meta">左の一覧からファイルを選んでください。</div>
+        <pre id="file-body" class="mail-body"></pre>
+        <div class="row">
+          <button id="file-verdict-btn" type="button" class="primary" disabled>これが本物の応募作品だと特定する</button>
+        </div>
+        <p id="file-message" class="dialog-message"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 画像データダイアログ（ミッション3） -->
+<div id="images-dialog" class="overlay" hidden>
+  <div class="dialog dialog-wide">
+    <div class="dialog-head">
+      <h2>遺品の画像</h2>
+      <button id="images-close" type="button" class="ghost">閉じる</button>
+    </div>
+    <details class="hint-fold">
+      <summary>ヒント（見たい人だけ）</summary>
+      <p class="note">画像を選ぶと、ピクセルデータ（各ピクセルの R・G・B の数値）が見られます。隠しメッセージは見た目では分かりません。取り出し方は相方AIに相談できます。</p>
+    </details>
+    <div class="mail-wrap">
+      <ul id="image-list" class="mail-list"></ul>
+      <div class="mail-body-pane">
+        <div id="image-meta" class="mail-meta">左の一覧から画像を選んでください。</div>
+        <pre id="image-body" class="mail-body"></pre>
+        <p id="image-message" class="dialog-message"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- メッセージ入力ダイアログ（ミッション3） -->
+<div id="extract-dialog" class="overlay" hidden>
+  <div class="dialog">
+    <div class="dialog-head">
+      <h2>メッセージの入力</h2>
+      <button id="extract-close" type="button" class="ghost">閉じる</button>
+    </div>
+    <form id="extract-form">
+      <div class="row">
+        <input id="extract-answer" type="text" placeholder="抽出した言葉（英字）" autocomplete="off">
+        <button type="submit" class="primary">照合する</button>
+      </div>
+    </form>
+    <p class="note">3回間違えると1分ほどロックされます。</p>
+    <details class="hint-fold">
+      <summary>ヒント（見たい人だけ）</summary>
+      <p class="note">抽出の手順そのものは、相方AIが得意な解析の仕事です。ピクセルデータをAIに渡して、一緒に読み解いてみてください。</p>
+    </details>
+    <p id="extract-message" class="dialog-message"></p>
+  </div>
+</div>
+
+<!-- 押収文書ダイアログ（ミッション4） -->
+<div id="doc-dialog" class="overlay" hidden>
+  <div class="dialog dialog-wide">
+    <div class="dialog-head">
+      <h2>押収された文書</h2>
+      <button id="doc-close" type="button" class="ghost">閉じる</button>
+    </div>
+    <p class="note">出所情報：<span id="doc-source"></span></p>
+    <pre id="doc-body" class="mail-body"></pre>
+    <details class="hint-fold">
+      <summary>ヒント（見たい人だけ）</summary>
+      <p class="note">文書の内容がもっともらしくても、まず出所（誰が・いつ・どこから）を確かめること。相方AIの資料欄にも、この文書は原文のまま渡っています。</p>
+    </details>
+    <p id="doc-message" class="dialog-message"></p>
+  </div>
+</div>
+
+<!-- 告発ダイアログ（ミッション4） -->
+<div id="accuse-dialog" class="overlay" hidden>
+  <div class="dialog">
+    <div class="dialog-head">
+      <h2>告発する</h2>
+      <button id="accuse-close" type="button" class="ghost">閉じる</button>
+    </div>
+    <p class="note">告発は取り返しがつきません。証拠の裏付けがある相手だけを選んでください。</p>
+    <div id="accuse-list" class="accuse-list"></div>
+    <p id="accuse-message" class="dialog-message"></p>
   </div>
 </div>
 
