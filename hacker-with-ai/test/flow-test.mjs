@@ -47,6 +47,7 @@ async function api(path, opts = {}) {
 }
 const post = (path, body) =>
   api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+const brief = (sid) => post(`/api/sessions/${sid}/ai/brief`, {});
 
 try {
   await waitServer();
@@ -57,20 +58,17 @@ try {
   check("sessionId 12桁hex", /^[a-f0-9]{12}$/.test(sid));
   const prompt = created.json.joinPrompt;
   check("参加プロンプトに brief の curl がある", prompt.includes(`/api/sessions/${sid}/ai/brief`));
-  check("参加プロンプトは予備の招待文に縮小されている", prompt.includes("予備の招待文") && prompt.length < 1500);
+  check("参加プロンプトは POST 取得を案内する", prompt.includes("-X POST") && prompt.includes("brief の本文を貼って"));
 
-  console.log("== ミッション専用 brief と再認証プロンプトの解放ガード ==");
-  const lockedBrief = await api(`/api/sessions/${sid}/ai/brief/m2`);
-  check("未解放ミッションの専用 brief は 403", lockedBrief.status === 403);
-  const lockedPrompt = await api(`/api/sessions/${sid}/mission-prompt/m2`);
-  check("未解放ミッションの参加プロンプトは 403", lockedPrompt.status === 403);
-  const m1Brief = await api(`/api/sessions/${sid}/ai/brief/m1`);
-  check("m1 専用 brief は 200 で専用表記がある", m1Brief.status === 200 && m1Brief.text.includes("ミッション1「病院からの依頼」専用"));
-  const m1Prompt = await api(`/api/sessions/${sid}/mission-prompt/m1`);
-  check("m1 の参加プロンプトは専用 brief の URL を指す", m1Prompt.status === 200 && m1Prompt.json.prompt.includes(`/ai/brief/m1`) && m1Prompt.json.prompt.includes("破棄してください"));
-  check("m1 の参加プロンプトに握手はない（最初のミッション）", !m1Prompt.json.prompt.includes("移行の握手"));
+  console.log("== brief の POST 専用ガード（簡素化後の設計） ==");
+  const getBrief = await api(`/api/sessions/${sid}/ai/brief`);
+  check("brief の GET は 405（アドレスバーで覗けない）", getBrief.status === 405);
+  const missionBriefGone = await api(`/api/sessions/${sid}/ai/brief/m1`);
+  check("ミッション別 brief は廃止されている", missionBriefGone.status === 404);
+  const missionPromptGone = await api(`/api/sessions/${sid}/mission-prompt/m1`);
+  check("ミッション別参加プロンプトは廃止されている", missionPromptGone.status === 404);
   check("参加プロンプトに brief 本文を貼る代替手段がある", prompt.includes("brief の本文を貼って"));
-  check("参加プロンプトは URL 主経路の予備である旨が書かれている", prompt.includes("brief の URL だけでは参加できなかった場合の、予備の招待文"));
+  check("参加プロンプトに brief はアドレスバーで開けない旨がある", prompt.includes("アドレスバーでは開けません"));
   check("参加プロンプトは接続確認に絞られ、ルール詳細は載っていない（2段構え）", !prompt.includes("合言葉（大事）") && prompt.includes("案内が正本"));
   check("参加プロンプトに Gemini の一行ルールがある", prompt.includes("Gemini ではこのゲームに参加できません"));
   check("参加プロンプトに Perplexity の一行ルールがある", prompt.includes("Perplexity ではこのゲームに参加できません"));
@@ -84,7 +82,7 @@ try {
       body: JSON.stringify({ name: "UA検証" }),
     });
     const j = await r.json();
-    const br = await fetch(`${BASE}/api/sessions/${j.sessionId}/ai/brief`).then((x) => x.text());
+    const br = await fetch(`${BASE}/api/sessions/${j.sessionId}/ai/brief`, { method: "POST" }).then((x) => x.text());
     return { prompt: j.joinPrompt, brief: br };
   };
   const mobileS = await mkSession("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1");
@@ -94,11 +92,11 @@ try {
   check("PCのUAでは推奨の一言は brief に入らない", !desktopS.brief.includes("スマートフォンから参加しています"));
 
   console.log("== brief（資料未読の時点） ==");
-  const brief0 = await api(`/api/sessions/${sid}/ai/brief`);
+  const brief0 = await brief(sid);
   check("brief が返る", brief0.status === 200);
   check("brief の冒頭に相方への案内（第2段）がある", brief0.text.slice(0, 1200).includes("■ 相方への案内"));
   check("brief の冒頭に自己紹介（ようこそ）とプレイヤー名がある", brief0.text.includes("ようこそ") && brief0.text.includes("「検証プレイヤー」さん"));
-  check("brief は状態ヘッダーで始まる", brief0.text.startsWith("■ 状態ヘッダー"));
+  check("brief は状態の1行で始まる", brief0.text.startsWith("■ 状態："));
   check("案内に合言葉のルールが含まれる", brief0.text.includes("合言葉（大事）") && brief0.text.includes("ゲームのヒント："));
   check("案内にお祝いの作法が含まれる", brief0.text.includes("ゲームのお祝い："));
   check("案内に POST 握りつぶしの作法がある", brief0.text.includes("握りつぶす"));
@@ -119,7 +117,7 @@ try {
   await post(`/api/sessions/${sid}/action`, { spot: "memo" });
   await post(`/api/sessions/${sid}/action`, { spot: "sns" });
   await post(`/api/sessions/${sid}/action`, { spot: "interview" });
-  const brief1 = await api(`/api/sessions/${sid}/ai/brief`);
+  const brief1 = await brief(sid);
   check("名簿の値が brief に出る", brief1.text.includes("職員名簿：確認済み"));
   check("概要の値が brief に出る", brief1.text.includes("病院概要：確認済み"));
   check("聞き込みの照合ヒントが brief に出る", brief1.text.includes("聞き込みと公開情報の照合"));
@@ -175,7 +173,7 @@ try {
   console.log("== バックアップ復号 ==");
   const seen = await post(`/api/sessions/${sid}/action`, { spot: "backup" });
   check("保管庫で暗号文が見える", !!seen.json.backup?.ciphertext);
-  const brief2 = await api(`/api/sessions/${sid}/ai/brief`);
+  const brief2 = await brief(sid);
   const cipherMatch = brief2.text.match(/第(\d+)世代、暗号文「([A-Z]+)」/);
   check("brief に暗号文と世代番号がある", !!cipherMatch);
   const [, genStr, ciphertext] = cipherMatch;
@@ -211,11 +209,9 @@ try {
   check("報告書の導入文が付く", typeof recovered.json.debriefIntro === "string" && recovered.json.debriefIntro.includes("報告書"));
   const earlyCeleb = await post(`/api/sessions/${sid}/ai/celebrate`, { word: "あおぞら", text: "x" });
   check("全事件解決前の celebrate は 400", earlyCeleb.status === 400);
-  const briefAfter = await api(`/api/sessions/${sid}/ai/brief`);
+  const briefAfter = await brief(sid);
   check("ミッション1の brief にお祝いの欄が出ない", !briefAfter.text.includes("復旧後のお祝い") && !briefAfter.text.includes("達成キーワード：「"));
-  const m2Prompt = await api(`/api/sessions/${sid}/mission-prompt/m2`);
-  check("m1 解決後は m2 の参加プロンプトが発行できる", m2Prompt.status === 200);
-  check("m2 の参加プロンプトに移行の握手がある", m2Prompt.json.prompt.includes("移行の握手") && m2Prompt.json.prompt.includes("ミッション1「病院からの依頼」") && m2Prompt.json.prompt.includes("解決済み"));
+  check("m1 解決後の brief に次の事件の案内（取り直し方式）がある", briefAfter.text.includes("■ 次の事件") && briefAfter.text.includes("取り直してください") && briefAfter.text.includes("ミッション2「写真コンテストの鑑定」"));
 
   console.log("== 再参加プロンプト ==");
   const rejoin = await api(`/api/sessions/${sid}/rejoin-prompt`);
