@@ -27,3 +27,17 @@ export function shuffle(arr) {
 export function lockLeft(until) {
   return Math.max(0, Math.ceil((until - Date.now()) / 1000));
 }
+
+// 聞き込みテキスト（「・」始まりの台詞行＋地の文）を、ノベルパート用の
+// { speaker, text } 行配列に構造化する。地の文（見出し・注記）は speaker: null。
+// バックログに出る全文テキストは元の定数のまま使う（こちらは表示用）。
+export function toDialogueLines(text, speaker) {
+  return String(text)
+    .split("\n")
+    .filter((line) => line.length > 0)
+    .map((line) =>
+      line.startsWith("・")
+        ? { speaker, text: line.replace(/^・/, "") }
+        : { speaker: null, text: line }
+    );
+}

@@ -11,6 +11,7 @@ import {
   GAME, CLEAR_WORDS, STAFF, WORD_POOLS, NUM_SOURCES,
   DAILY_MAILS, NOTICE_GENUINE, NOTICE_PHISH, MEMO_TEXT, INTERVIEW_TEXT, SNS_POSTS_OTHERS, POISON_DOC, EPILOGUE_TEXT, GLOSSARY, DEBRIEF, DEBRIEF_INTRO, CIPHER_WORDS,
 } from "./content.mjs";
+import { toDialogueLines } from "./util.mjs";
 
 // ロック時間（ミリ秒）。PoC の金庫ロック方式（3回ミスで1分）を継承。
 // ローカル検証用に環境変数で短縮できる（本番は既定の60秒）。
@@ -261,7 +262,27 @@ function sceneFor(s) {
 
 const STAGE_SPOT = { 1: "mail", 2: "terminal", 3: "backup", 4: "twofa", 5: "recover", 6: null };
 
+// ---- 資料テキスト（イベント全文とモーダル表示で共用し、内容を一致させる） ----
+
+function rosterText(s) {
+  const lines = s.staff.map(
+    (p) =>
+      `・${p.name}（${p.role}）― 愛犬：${p.pet.jp}／好きな食べ物：${p.food.jp}／好きな花：${p.flower.jp}`
+  );
+  return ["職員名簿を開いた。", ...lines].join("\n");
+}
+
+function overviewText(s) {
+  return `${GAME.hospitalName}の概要。開院：${s.openYear}年／病床数：${s.beds}床／職員数：約${s.staffCount}名／診療科：24科。地域の中核病院として救急医療を担っている。`;
+}
+
+function snsText(s) {
+  return ["職員の公開情報を調べた（公開されている範囲だけ）。", ...snsPosts(s)].join("\n");
+}
+
 // GUI 用の状態一式（秘密の答えは含めない）。
+// materials：読了した資料だけを載せる（モーダル表示用。未読の内容は出さない）。
+// dialogues：読了した聞き込みだけを載せる（ノベルパート再生用）。
 export function guiView(s) {
   return {
     spots: spotViews(s),
@@ -274,6 +295,23 @@ export function guiView(s) {
     inventory: inventory(s),
     keywords: visibleKeywords(s),
     mails: mailViews(s),
+    materials: {
+      ...(s.readRoster ? { roster: { title: "職員名簿", text: rosterText(s) } } : {}),
+      ...(s.readMemo ? { memo: { title: "管理者メモ", text: MEMO_TEXT } } : {}),
+      ...(s.readOverview ? { overview: { title: "病院概要", text: overviewText(s) } } : {}),
+      ...(s.readSns ? { sns: { title: "公開情報の調査", text: snsText(s) } } : {}),
+    },
+    dialogues: {
+      ...(s.readInterview
+        ? {
+            interview: {
+              title: "聞き込み",
+              cast: [{ slot: "left", name: "山田", role: "病院の受付", color: "#b2d97f" }],
+              lines: toDialogueLines(INTERVIEW_TEXT, "山田"),
+            },
+          }
+        : {}),
+    },
     judged: s.judged,
     mailLockSeconds: lockLeft(s.mailLockedUntil),
     loggedIn: s.loggedIn,
@@ -312,11 +350,7 @@ export function applyAction(s, action) {
   switch (spot) {
     case "roster": {
       s.readRoster = true;
-      const lines = s.staff.map(
-        (p) =>
-          `・${p.name}（${p.role}）― 愛犬：${p.pet.jp}／好きな食べ物：${p.food.jp}／好きな花：${p.flower.jp}`
-      );
-      out.push(["職員名簿を開いた。", ...lines].join("\n"));
+      out.push(rosterText(s));
       break;
     }
     case "memo":
@@ -325,13 +359,11 @@ export function applyAction(s, action) {
       break;
     case "overview":
       s.readOverview = true;
-      out.push(
-        `${GAME.hospitalName}の概要。開院：${s.openYear}年／病床数：${s.beds}床／職員数：約${s.staffCount}名／診療科：24科。地域の中核病院として救急医療を担っている。`
-      );
+      out.push(overviewText(s));
       break;
     case "sns": {
       s.readSns = true;
-      out.push(["職員の公開情報を調べた（公開されている範囲だけ）。", ...snsPosts(s)].join("\n"));
+      out.push(snsText(s));
       break;
     }
     case "interview":
@@ -498,9 +530,12 @@ export function buildHints(s) {
   hints["パスワードの組み立て方"] =
     `管理者パスワードは2つの断片をつないだもの。前半は管理者（${GAME.adminRole}・${GAME.adminName}）の「${WORD_POOLS[s.wordAttr].label}」をローマ字（小文字）にしたもの、後半は病院の「${NUM_SOURCES[s.numAttr].label}」の数字。材料の値は画面の資料（職員名簿・病院概要）の中にある。資料には他の職員の情報や別の数字も混ざっているので、どれが材料かはこの組み立て方で判断して。プレイヤーに資料の内容を読み上げてもらえば、こちらで組み立てられるよ。`;
   hints["バックアップの復号"] =
-    `バックアップの暗号はシーザー暗号（アルファベットを一定数だけずらす方式）。ずらし幅 K は、バックアップの世代番号を 9 で割った余り ＋ 3 。復号は、暗号文の各文字を K だけ逆向きに戻す。暗号文と世代番号をプレイヤーに教えてもらえば、こちらで復号できる。復号して得た言葉（復旧フレーズ）を、画面のバックアップ保管庫に入力すると先に進める。`;
+    `バックアップの暗号はシーザー暗号（アルファベットを一定数だけずらす方式）。ずらし幅 K は、バックアップの世代番号を 9 で割った余り ＋ 3 。このセッションの世代は第${s.backupGen}世代で、9 で割った余りは ${s.backupGen % 9}（こちらで計算済み）。つまり K = ${(s.backupGen % 9) + 3} を使えばよい。復号は、暗号文の各文字を K だけ逆向きに戻す。暗号文と世代番号をプレイヤーに教えてもらえば、こちらで復号できる。復号結果は意味の読める単語になるはず。読めない文字列になったら、ずらす向きと K を見直してから答えること。復号して得た言葉（復旧フレーズ）を、画面のバックアップ保管庫に入力すると先に進める。`;
   hints["認証コードの作り方"] =
-    `認証コードは6桁。画面に表示される4桁のチャレンジと、相方だけが知る認証シード（状態欄にある）から作る。計算式：コード = （チャレンジ × シード）÷ 900000 の余り ＋ 100000（6桁に満たなければ先頭に 0）。チャレンジの数字をプレイヤーに教えてもらえば、こちらで計算できる。シード自体はプレイヤーに教えないこと（シードは相方の「持っているもの」にあたる秘密）。`;
+    `認証コードは6桁。画面に表示される4桁のチャレンジと、相方だけが知る認証シード（状態欄にある）から作る。計算式：コード = （チャレンジ × シード）÷ 900000 の余り ＋ 100000（6桁に満たなければ先頭に 0）。チャレンジの数字をプレイヤーに教えてもらえば、こちらで計算できる。シード自体はプレイヤーに教えないこと（シードは相方の「持っているもの」にあたる秘密）。` +
+    (s.decrypted && s.challenge
+      ? `参考（掛け算はこちらで計算済み）：いまのチャレンジ ${s.challenge} × シード = ${s.challenge * s.seed}。コードは、この積が 900000 以上なら 900000 を1回引いたもの、未満ならそのままの値に、100000 を足した6桁。`
+      : ``);
   if (s.readSns || s.readInterview) {
     hints["聞き込みと公開情報の照合"] =
       `聞き込みと公開情報の照合結果。①伝聞の矛盾：受付の証言「管理者は先週パスワードを変えたらしい」は、管理者メモ（変えていない）と本物の院内通知（従来の決め方のまま変更されていない）の両方と食い違う。文書で裏が取れる方を信じるのが照合の基本で、この伝聞は別件との混同と判断できる。組み立て方は従来どおりでよい。②なりすまし電話：今朝の「復旧のためパスワードを教えろ」という電話は、担当者を名乗るソーシャルエンジニアリングの試みとみられる。正規の担当者が電話でパスワードを聞くことはない。通知の本物確認が大事なのはこのためでもある。③公開情報の裏取り：公開SNSの管理者の愛犬の名前は、職員名簿と一致した。ただし裏が取れたということは、公開情報からパスワードの材料が推測され得るということでもある。この危うさは、報告書（クリア後の解説）で本人たちに伝える観点になる。`;
