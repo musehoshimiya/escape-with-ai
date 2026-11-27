@@ -77,7 +77,8 @@ const MIME = {
 
 function sendJson(res, code, obj) {
   const body = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-  res.writeHead(code, { "Content-Type": "application/json; charset=utf-8" });
+  // 状態は毎回変わる。キャッシュされると「brief が更新されない」事故になるので no-store。
+  res.writeHead(code, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
   res.end(body);
 }
 
@@ -153,7 +154,7 @@ const server = createServer(async (req, res) => {
     // brief は GET（curl -s）で取るのが正本。POST でも同じものを返す
     // （画面の「brief 本文をコピー」が同一オリジンから POST で取得するため）。
     if (sub === "/ai/brief" && (req.method === "GET" || req.method === "POST")) {
-      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
       return res.end(aiBrief(s, publicBase(req)));
     }
 

@@ -62,6 +62,8 @@ try {
 
   console.log("== brief の取得方式（簡素化後の設計） ==");
   const getBrief = await api(`/api/sessions/${sid}/ai/brief`);
+  const briefHeaders = await fetch(`${BASE}/api/sessions/${sid}/ai/brief`).then((x) => x.headers);
+  check("brief はキャッシュ禁止（no-store）で返る", (briefHeaders.get("cache-control") ?? "").includes("no-store"));
   check("brief の GET が返る（curl -s 方式）", getBrief.status === 200);
   const missionBriefGone = await api(`/api/sessions/${sid}/ai/brief/m1`);
   check("ミッション別 brief は廃止されている", missionBriefGone.status === 404);

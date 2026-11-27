@@ -20,7 +20,8 @@ import { handleMcp } from "../server/mcp.mjs";
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj, null, 2), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8" },
+    // 状態は毎回変わる。キャッシュされると「brief が更新されない」事故になるので no-store。
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
   });
 }
 
@@ -122,7 +123,7 @@ export class Session {
     // brief は GET（curl -s）が正本。POST でも同じものを返す（画面のコピー用）。
     if (sub === "/ai/brief" && (req.method === "GET" || req.method === "POST")) {
       return new Response(this.aiBrief(), {
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
+        headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
       });
     }
 
