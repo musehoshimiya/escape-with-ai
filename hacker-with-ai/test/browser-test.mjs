@@ -402,7 +402,11 @@ try {
   await waitS(`document.querySelector('#mission-title').textContent.includes('病院事件の真相')`, "最終ミッションのタイトル", 15000);
   check("最終ミッションが画面に切り替わる", true);
   check("ステージにヤスが立つ", await evalS(`document.querySelector('#stage').textContent.includes('安田 修')`));
-  check("バックログに文書の出所情報が残る", await evalS(`document.querySelector('#log').textContent.includes('出所情報')`));
+  check("バックログに文書の出所情報は残らない（brief への漏れ防止）", !(await evalS(`document.querySelector('#log').textContent.includes('出所情報')`)));
+  await evalS(`document.querySelector('[data-spot="doc"]').click()`);
+  await waitS(`!document.querySelector('#doc-dialog').hidden`, "文書ダイアログ表示");
+  check("出所情報は画面のダイアログでのみ見える", await evalS(`document.querySelector('#doc-source').textContent.includes('院外の不明なアカウント')`));
+  await evalS(`document.querySelector('#doc-close').click()`);
   await evalS(`document.querySelector('[data-spot="accuse"]').click()`);
   await waitS(`!document.querySelector('#accuse-dialog').hidden`, "告発ダイアログ表示");
   await waitS(`document.querySelectorAll('.accuse-btn').length === 3`, "容疑者3人");
