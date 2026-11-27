@@ -166,6 +166,11 @@ try {
   const plain = ciphertext.replace(/[A-Z]/g, (c) =>
     String.fromCharCode(((c.charCodeAt(0) - 65 - K + 26) % 26) + 65));
   console.log(`  復号結果: ${plain}（K=${K}）`);
+  const tablePairs = [...brief2.text.matchAll(/([A-Z])→([A-Z])/g)];
+  check("brief に復号の対応表がある（26文字）", tablePairs.length >= 26);
+  const tableMap = Object.fromEntries(tablePairs.map((m) => [m[1], m[2]]));
+  const plainByTable = ciphertext.replace(/[A-Z]/g, (c) => tableMap[c] ?? "?");
+  check("対応表で置き換えると復号結果と一致する", plainByTable === plain);
   const badDecrypt = await post(`/api/sessions/${sid}/action`, { spot: "backup", answer: "ZZZZZZ" });
   check("違うフレーズは弾かれる", badDecrypt.json.backup.decrypted === false);
   const decrypted = await post(`/api/sessions/${sid}/action`, { spot: "backup", answer: plain });
