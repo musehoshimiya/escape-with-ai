@@ -210,16 +210,33 @@ function render(state) {
       nextBtn.hidden = false;
       nextBtn.textContent = `次の事件へ進む：ミッション${next.no}「${next.title}」`;
       nextBtn.onclick = async () => { await postAction({ spot: "select_mission", mission: next.id }); };
+      const noteBtn = $("partner-note-btn");
+      noteBtn.hidden = false;
+      noteBtn.onclick = async () => {
+        const cur = state.mission;
+        const briefUrl = `${location.origin}/api/sessions/${sessionId}/ai/brief/${next.id}`;
+        const note = `ミッション${cur.no}「${cur.title}」を解決したよ。次のミッション${next.no}「${next.title}」が開いたから、次に答える前に、このミッション専用の brief を読んで：${briefUrl} （URLが開けない環境なら言って。本文を貼るから）`;
+        try {
+          await navigator.clipboard.writeText(note);
+          noteBtn.textContent = "コピーしました";
+          setTimeout(() => (noteBtn.textContent = "相方への連絡をコピー（次の brief を読ませる）"), 2500);
+        } catch {
+          /* コピーできない環境では何もしない */
+        }
+      };
     } else if (state.allCleared) {
       nextLine.textContent = "事件簿の依頼は、すべて解決済みです。おつかれさま！";
       nextBtn.hidden = true;
+      $("partner-note-btn").hidden = true;
     } else {
       nextLine.textContent = "";
       nextBtn.hidden = true;
+      $("partner-note-btn").hidden = true;
     }
   } else {
     nextLine.textContent = "";
     nextBtn.hidden = true;
+    $("partner-note-btn").hidden = true;
   }
 
   // 対応手順（ステッパー）
