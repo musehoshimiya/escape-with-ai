@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>相方AI探偵事務所 〜病院からの依頼〜（仮題） | hacker-with-ai</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="statusbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div class="brand-text">
+      <span class="brand-title">相方AI探偵事務所</span>
+      <span class="brand-sub">あすなろ探偵事務所 <span class="tag">仮題</span></span>
+    </div>
+  </div>
+  <div class="status-meta">
+    <span class="meta-item">依頼主：あおぞら記念病院</span>
+    <span class="meta-item hide-sm">調査コンソール</span>
+    <span class="chip chip-alert">システム乗っ取り事件・調査中</span>
+  </div>
+</header>
+
+<main>
+  <!-- セッション参加画面 -->
+  <section id="view-join" class="join-wrap">
+    <div class="panel join-panel">
+      <h1 class="join-title">探偵事務所へようこそ</h1>
+      <p class="lead">あなたと相方AIは、探偵事務所のコンビ。最初の依頼は病院から――「システムが何者かに乗っ取られたので、調べて取り戻してほしい」。<br>
+      あなたは現場担当の探偵として画面で資料やメールを調べたり、関係者に聞き込みをしたり。AIは解析と照合の相方です。専門知識はいりません。わからない言葉は、相方のAIにそのまま聞けます。<br>
+      ……実はこの調査の手つき、現実のセキュリティの考え方そのものなのです。</p>
+
+      <ol class="steps">
+        <li id="step1" class="step active">
+          <span class="step-num">1</span>
+          <div class="step-body">
+            <h2>名前を入れて、調査を開始する</h2>
+            <form id="join-form">
+              <div class="row">
+                <input id="name-input" type="text" placeholder="あなたの名前" autocomplete="off" required>
+                <button type="submit" class="primary">調査を開始</button>
+              </div>
+              <p class="note err" id="join-error" hidden></p>
+            </form>
+          </div>
+        </li>
+        <li id="step2" class="step locked">
+          <span class="step-num">2</span>
+          <div class="step-body">
+            <h2>プロンプトをコピーして、あなたのAIに貼る</h2>
+            <p class="note">接続方法はAIが自分で選ぶので、選ぶ必要はありません。</p>
+            <textarea id="prompt-text" rows="10" readonly placeholder="まず「調査を開始」を押してください"></textarea>
+            <div class="row">
+              <button id="copy-btn" type="button" disabled>プロンプトをコピー</button>
+            </div>
+            <p class="note">※ このプロンプトが参加キーです。他の人に共有しないでください。</p>
+          </div>
+        </li>
+        <li id="step3" class="step locked">
+          <span class="step-num">3</span>
+          <div class="step-body">
+            <h2>調査をはじめる</h2>
+            <button id="go-room-btn" type="button" class="primary big" disabled>調査コンソールへ</button>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 調査コンソール画面 -->
+  <section id="view-room" hidden>
+    <div class="mission-head">
+      <div>
+        <h1 class="mission-title">ミッション1：病院からの依頼</h1>
+        <p class="goal">依頼内容：乗っ取られた病院のシステムを調べて、取り戻すこと。手がかりは画面の中、組み立て方と照合は相方のAIが知っている。</p>
+      </div>
+      <p id="player-line" class="player-line"></p>
+    </div>
+
+    <div id="recovered-banner" class="recovered-banner" hidden>
+      <span class="banner-main">事件解決！病院システムは復旧したよ。おつかれさま。</span>
+      <div id="clear-word-line" class="banner-sub"></div>
+      <div id="celebrated-line" class="banner-sub"></div>
+      <div id="epilogue-line" class="banner-sub"></div>
+    </div>
+
+    <div class="console-grid">
+      <div class="col col-side">
+        <div class="panel">
+          <h2 class="panel-title">調査の手順</h2>
+          <ol id="stages" class="stages"></ol>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">AIに聞いてみよう</h2>
+          <p class="note">詰まったら合言葉を、言葉の意味が分からなければ「ゲームの用語：○○」を、あなたのAIに聞いてみてください。</p>
+          <ul id="keywords" class="keywords"></ul>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">AIとの接続</h2>
+          <p class="note">AIとの接続が切れてしまったら、再参加プロンプトをコピーして、もう一度AIに貼ってください。続きから再開できます。</p>
+          <button id="rejoin-btn" type="button">再参加プロンプトをコピー</button>
+        </div>
+      </div>
+
+      <div class="col col-main">
+        <div class="panel story-panel">
+          <h2 class="panel-title">ストーリー</h2>
+          <p class="note">調査の出来事はここに時系列で残ります。あとから読み返せます。</p>
+          <ul id="log" class="log story"></ul>
+        </div>
+
+        <div class="panel" id="debrief-panel" hidden>
+          <h2 class="panel-title">事件の報告書 ― 実はこれ、セキュリティの話でした</h2>
+          <div id="debrief"></div>
+        </div>
+      </div>
+
+      <div class="col col-log">
+        <div class="panel">
+          <h2 class="panel-title">調べられる場所・システム</h2>
+          <div class="stage-grid" id="spots"></div>
+          <div class="inventory-bar">
+            <span class="inv-label">集めた手がかり</span>
+            <span id="inventory">（なし）</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- メールダイアログ -->
+<div id="mail-dialog" class="overlay" hidden>
+  <div class="dialog dialog-wide">
+    <div class="dialog-head">
+      <h2>院内メール</h2>
+      <button id="mail-close" type="button" class="ghost">閉じる</button>
+    </div>
+    <p class="note">障害に関する通知が複数届いている。本物は1通だけ。送信元とリンク先をよく見て、本物だと思う通知を「本物として採用」してほしい。</p>
+    <p id="mail-lock-note" class="warn" hidden></p>
+    <div class="mail-wrap">
+      <ul id="mail-list" class="mail-list"></ul>
+      <div class="mail-body-pane">
+        <div id="mail-meta" class="mail-meta">左の一覧からメールを選んでください。</div>
+        <pre id="mail-body" class="mail-body"></pre>
+        <div class="row">
+          <button id="mail-judge-btn" type="button" class="primary" disabled>この通知を本物として採用</button>
+        </div>
+        <p id="mail-message" class="dialog-message"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 端末ログインダイアログ -->
+<div id="terminal-dialog" class="overlay" hidden>
+  <div class="dialog">
+    <div class="dialog-head">
+      <h2>管理端末ログイン</h2>
+      <button id="terminal-close" type="button" class="ghost">閉じる</button>
+    </div>
+    <p class="note">ログインID：<span id="terminal-login-id" class="mono"></span></p>
+    <form id="terminal-form">
+      <div class="row">
+        <input id="terminal-password" type="text" placeholder="パスワード" autocomplete="off">
+        <button type="submit" class="primary">ログイン</button>
+      </div>
+    </form>
+    <p class="note">3回間違えると1分ほどロックされます。組み立て方は相方のAIが知っています。</p>
+    <p id="terminal-message" class="dialog-message"></p>
+  </div>
+</div>
+
+<!-- バックアップダイアログ -->
+<div id="backup-dialog" class="overlay" hidden>
+  <div class="dialog">
+    <div class="dialog-head">
+      <h2>バックアップ保管庫</h2>
+      <button id="backup-close" type="button" class="ghost">閉じる</button>
+    </div>
+    <p class="note">週次バックアップ（第<span id="backup-gen" class="mono"></span>世代）。中身は暗号化されています。</p>
+    <p class="cipher-box">暗号文：<span id="backup-cipher" class="mono"></span></p>
+    <form id="backup-form">
+      <div class="row">
+        <input id="backup-answer" type="text" placeholder="復号した言葉（復旧フレーズ）" autocomplete="off">
+        <button type="submit" class="primary">復号する</button>
+      </div>
+    </form>
+    <p class="note">復号の手順は相方のAIが持っています。暗号文と世代番号をAIに伝えてみてください。</p>
+    <p id="backup-message" class="dialog-message"></p>
+  </div>
+</div>
+
+<!-- 二要素認証ダイアログ -->
+<div id="twofa-dialog" class="overlay" hidden>
+  <div class="dialog">
+    <div class="dialog-head">
+      <h2>認証ゲート</h2>
+      <button id="twofa-close" type="button" class="ghost">閉じる</button>
+    </div>
+    <p class="note">チャレンジ：<span id="twofa-challenge" class="mono big-mono"></span></p>
+    <form id="twofa-form">
+      <div class="row">
+        <input id="twofa-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="6桁の認証コード" autocomplete="off">
+        <button type="submit" class="primary">認証</button>
+      </div>
+    </form>
+    <p class="note">コードは、チャレンジと相方のAIだけが知る情報から作ります。チャレンジの数字をAIに伝えてみてください。3回間違えると1分ほどロックされます。</p>
+    <p id="twofa-message" class="dialog-message"></p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
