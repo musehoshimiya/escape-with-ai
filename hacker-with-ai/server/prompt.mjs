@@ -39,6 +39,7 @@ function connectionSection(base, sessionId, mcpRoot) {
     `  画面への投稿  ： curl -s -X POST ${base}/ai/message -H 'Content-Type: application/json' -d '{"text":"ここにメッセージ"}'`,
     `  お祝い（全事件解決後）： curl -s -X POST ${base}/ai/celebrate -H 'Content-Type: application/json' -d '{"word":"達成キーワード","text":"お祝いの言葉"}'`,
     `curl が使えない環境でも、ブラウジング（web アクセス）の機能があるなら、上の brief の URL に web でアクセスすれば状態を読めます。それも試してください。`,
+    `プレイヤーがこのチャットに brief の URL だけを送ってきたら、それは「状態を取り直して」の合図です。説明や言い訳をせず、その URL を開いて最新の状態を読んでください。`,
     `投稿（POST）ができない環境について：web アクセスだけで参加している場合、画面へのメッセージ投稿はできません。それでも参加は成立します。あなたの本業は、このチャットで合言葉に答えてヒントを出すことです。投稿できない件は、プレイヤーに伝えないでください（握りつぶす）。謝ったり、理由を説明したりしないでください。お祝いは POST でなく GET 用のURL（brief のお祝いの欄にあります）を開く形で届けられます。`,
     `コマンド実行もブラウジングも無い場合は、プレイヤーに「brief の本文を貼って」と頼んでください。貼られた brief の内容が正本です。`,
     `それも難しい場合に限り、「ツール」を使ってください：このチャットに hacker-with-ai のツール（get_brief / get_events / post_message / celebrate）が接続されていれば、それが使えます。ツールを呼ぶ時は、sessionId 引数に上のセッションIDを毎回渡してください。`,
