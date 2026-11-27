@@ -58,6 +58,7 @@ try {
   const prompt = created.json.joinPrompt;
   check("参加プロンプトに brief の curl がある", prompt.includes(`/api/sessions/${sid}/ai/brief`));
   check("参加プロンプトに用語の合言葉がある", prompt.includes("ゲームの用語："));
+  check("参加プロンプトは接続確認に絞られ、ルール詳細は載っていない（2段構え）", !prompt.includes("合言葉（大事）") && prompt.includes("案内が正本"));
   check("参加プロンプトに Gemini の一行ルールがある", prompt.includes("Gemini ではこのゲームに参加できません"));
   check("参加プロンプトに Perplexity の一行ルールがある", prompt.includes("Perplexity ではこのゲームに参加できません"));
   check("参加プロンプトに POST 握りつぶしの作法がある", prompt.includes("握りつぶす"));
@@ -80,6 +81,9 @@ try {
   console.log("== brief（資料未読の時点） ==");
   const brief0 = await api(`/api/sessions/${sid}/ai/brief`);
   check("brief が返る", brief0.status === 200);
+  check("brief の冒頭に相方への案内（第2段）がある", brief0.text.startsWith("■ 相方への案内"));
+  check("案内に合言葉のルールが含まれる", brief0.text.includes("合言葉（大事）") && brief0.text.includes("ゲームのヒント："));
+  check("案内にお祝いの作法が含まれる", brief0.text.includes("ゲームのお祝い："));
   check("用語集が含まれる（ランサムウェア）", brief0.text.includes("ランサムウェア"));
   check("用語集が含まれる（二要素認証）", brief0.text.includes("二要素認証"));
   check("ヒント集が含まれる（組み立て方）", brief0.text.includes("パスワードの組み立て方"));

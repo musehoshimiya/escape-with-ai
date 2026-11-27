@@ -5,6 +5,7 @@
 // 事件簿の情報（casebook / mission）を付け足す（既存テストの前提を壊さない）。
 
 import { CASEBOOK } from "./content.mjs";
+import { PARTNER_GUIDE } from "./prompt.mjs";
 import { mission1 } from "./mission.mjs";
 import { mission2 } from "./mission2.mjs";
 import { mission3 } from "./mission3.mjs";
@@ -124,6 +125,7 @@ export function applyCelebrate(c, word, text) {
 export function buildBrief(c, recentEvents, celebrateGetUrl) {
   const m = mod(c);
   const lines = [];
+  lines.push(PARTNER_GUIDE, ``);
   lines.push(`■ 事件簿（あすなろ探偵事務所）`);
   for (const item of casebookView(c)) {
     const mark =
