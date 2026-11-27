@@ -70,6 +70,7 @@ try {
   check("m1 の参加プロンプトは専用 brief の URL を指す", m1Prompt.status === 200 && m1Prompt.json.prompt.includes(`/ai/brief/m1`) && m1Prompt.json.prompt.includes("破棄してください"));
   check("m1 の参加プロンプトに握手はない（最初のミッション）", !m1Prompt.json.prompt.includes("移行の握手"));
   check("参加プロンプトに brief 本文を貼る代替手段がある", prompt.includes("brief の本文を貼って"));
+  check("参加プロンプトは URL 単独メッセージ方式（URLだけ投げると読みに行く）", prompt.includes("URL だけを単独のメッセージで送ります"));
   check("参加プロンプトは接続確認に絞られ、ルール詳細は載っていない（2段構え）", !prompt.includes("合言葉（大事）") && prompt.includes("案内が正本"));
   check("参加プロンプトに Gemini の一行ルールがある", prompt.includes("Gemini ではこのゲームに参加できません"));
   check("参加プロンプトに Perplexity の一行ルールがある", prompt.includes("Perplexity ではこのゲームに参加できません"));
