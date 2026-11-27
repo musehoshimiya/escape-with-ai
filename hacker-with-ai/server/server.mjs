@@ -18,7 +18,7 @@ import {
   firstIntro,
   currentWord,
 } from "./casebook.mjs";
-import { buildJoinPrompt, buildRejoinPrompt } from "./prompt.mjs";
+import { buildJoinPrompt, buildRejoinPrompt, isMobileUA } from "./prompt.mjs";
 import { handleMcp } from "./mcp.mjs";
 
 const PORT = process.env.PORT ?? 8788;
@@ -103,7 +103,7 @@ const server = createServer(async (req, res) => {
     const s = newSession(name);
     const baseUrl = publicBase(req);
     const mcpRoot = `${baseUrl}/mcp`;
-    const joinPrompt = buildJoinPrompt({ baseUrl, sessionId: s.id, name, mcpRoot });
+    const joinPrompt = buildJoinPrompt({ baseUrl, sessionId: s.id, name, mcpRoot, isMobile: isMobileUA(req.headers["user-agent"]) });
     return sendJson(res, 201, { sessionId: s.id, name, joinPrompt, mcpUrl: mcpRoot });
   }
 

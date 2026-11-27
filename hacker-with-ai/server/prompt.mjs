@@ -69,7 +69,19 @@ const HINT_RULES = [
   `- プレイヤーが詰まった様子なら、画面に短い励ましや問いかけのメッセージを残すのは歓迎です。`,
 ];
 
-export function buildJoinPrompt({ baseUrl, sessionId, name, mcpRoot }) {
+// UA がスマートフォンらしいかをざっくり判定する（参加時の案内出し分け用）。
+export function isMobileUA(ua) {
+  return /iPhone|iPad|iPod|Android|Mobile|webOS|BlackBerry/i.test(String(ua ?? ""));
+}
+
+// スマホ参加のときだけ参加プロンプトに入る、相方AIへの指示。
+// 遊べはするが PC の方が遊びやすい旨を、最初の挨拶で一度だけ軽く伝える。
+const MOBILE_NOTE = [
+  `■ プレイヤーの環境について`,
+  `プレイヤーはスマートフォンから参加しています。スマホでもそのまま遊べますが、資料やバックログを読む画面は PC の方が見やすく、遊びやすいです。最初の挨拶のついでに、その旨を一言だけ軽く伝えてください（「スマホでも遊べるけど、PCの方が遊びやすいよ」くらいの軽さで）。繰り返し勧めたり、PC に切り替えるまで待ったりはしないでください。`,
+];
+
+export function buildJoinPrompt({ baseUrl, sessionId, name, mcpRoot, isMobile = false }) {
   const base = `${baseUrl}/api/sessions/${sessionId}`;
   return [
     `あなたは ${TITLE} の相方探偵として招待されました。プレイヤーは「${name}」さんです。`,
@@ -82,6 +94,7 @@ export function buildJoinPrompt({ baseUrl, sessionId, name, mcpRoot }) {
     ``,
     ...connectionSection(base, sessionId, mcpRoot),
     ``,
+    ...(isMobile ? [...MOBILE_NOTE, ``] : []),
     `■ 最初にやること`,
     `まず brief のコマンドを実行して現在の状態を受け取ってください。投稿できる手段がある場合は、挨拶のメッセージを1つ画面に残してください（投稿できない環境なら、無理に試み続けなくて大丈夫です）。`,
     `そしてプレイヤーへの返事では、参加できたことと、合言葉の使い方（分からなければ「ゲームのヒント：○○」、用語は「ゲームの用語：○○」と聞いてね）を一言だけ添えてください。長い説明は要りません。`,

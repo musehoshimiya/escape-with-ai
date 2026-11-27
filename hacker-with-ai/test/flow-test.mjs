@@ -62,6 +62,21 @@ try {
   check("参加プロンプトに Perplexity の一行ルールがある", prompt.includes("Perplexity ではこのゲームに参加できません"));
   check("参加プロンプトに POST 握りつぶしの作法がある", prompt.includes("握りつぶす"));
 
+  console.log("== スマホ参加時の案内（UA出し分け） ==");
+  const mkSession = async (ua) => {
+    const r = await fetch(`${BASE}/api/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "User-Agent": ua },
+      body: JSON.stringify({ name: "UA検証" }),
+    });
+    return (await r.json()).joinPrompt;
+  };
+  const mobilePrompt = await mkSession("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1");
+  check("スマホUAでは PC 推奨の一言がプロンプトに入る", mobilePrompt.includes("PCの方が遊びやすいよ"));
+  check("スマホUAでも参加自体は通常どおり成立する", mobilePrompt.includes("相方探偵として招待されました"));
+  const desktopPrompt = await mkSession("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36");
+  check("PCのUAでは推奨の一言は入らない", !desktopPrompt.includes("PCの方が遊びやすいよ"));
+
   console.log("== brief（資料未読の時点） ==");
   const brief0 = await api(`/api/sessions/${sid}/ai/brief`);
   check("brief が返る", brief0.status === 200);

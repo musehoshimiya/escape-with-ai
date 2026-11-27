@@ -14,7 +14,7 @@ import {
   firstIntro,
   currentWord,
 } from "../server/casebook.mjs";
-import { buildJoinPrompt, buildRejoinPrompt } from "../server/prompt.mjs";
+import { buildJoinPrompt, buildRejoinPrompt, isMobileUA } from "../server/prompt.mjs";
 import { handleMcp } from "../server/mcp.mjs";
 
 function json(obj, status = 200) {
@@ -186,7 +186,7 @@ export default {
       });
       if (!initRes.ok) return json({ error: "failed to create session" }, 500);
       const mcpRoot = `${url.origin}/mcp`;
-      const joinPrompt = buildJoinPrompt({ baseUrl: url.origin, sessionId: id, name, mcpRoot });
+      const joinPrompt = buildJoinPrompt({ baseUrl: url.origin, sessionId: id, name, mcpRoot, isMobile: isMobileUA(req.headers.get("user-agent")) });
       return json({ sessionId: id, name, joinPrompt, mcpUrl: mcpRoot }, 201);
     }
 
