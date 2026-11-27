@@ -150,15 +150,11 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 200, guiState(s));
     }
 
-    // brief は POST 専用（2026-11-27 簡素化）。GET で開けてしまうと、プレイヤーが
-    // アドレスバーから相方だけの情報を見てしまうため、GET には 405 を返す。
-    if (sub === "/ai/brief" && req.method === "POST") {
+    // brief は GET（curl -s）で取るのが正本。POST でも同じものを返す
+    // （画面の「brief 本文をコピー」が同一オリジンから POST で取得するため）。
+    if (sub === "/ai/brief" && (req.method === "GET" || req.method === "POST")) {
       res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
       return res.end(aiBrief(s, publicBase(req)));
-    }
-    if (sub === "/ai/brief") {
-      res.writeHead(405, { "Content-Type": "text/plain; charset=utf-8" });
-      return res.end("この brief は POST 専用です。相方AIが POST で取得するもので、ブラウザで開くものではありません。");
     }
 
     if (sub === "/ai/message" && req.method === "POST") {

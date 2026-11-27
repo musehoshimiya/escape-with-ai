@@ -102,7 +102,7 @@ $("rejoin-btn").addEventListener("click", async () => {
 
 $("brief-copy-btn").addEventListener("click", async () => {
   if (!sessionId) return;
-  // brief は POST 専用。画面（同一オリジン）からは POST で取得して本文をコピーする。
+  // 画面（同一オリジン）からは POST で取得して本文をコピーする（GET でも同じものが返る）。
   const res = await fetch(`/api/sessions/${sessionId}/ai/brief`, { method: "POST" });
   if (!res.ok) return;
   const text = await res.text();

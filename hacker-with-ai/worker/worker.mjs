@@ -119,15 +119,9 @@ export class Session {
       return json(this.guiState());
     }
 
-    // brief は POST 専用（GET だとプレイヤーがアドレスバーから覗けてしまうため）。
-    if (sub === "/ai/brief" && req.method === "POST") {
+    // brief は GET（curl -s）が正本。POST でも同じものを返す（画面のコピー用）。
+    if (sub === "/ai/brief" && (req.method === "GET" || req.method === "POST")) {
       return new Response(this.aiBrief(), {
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
-    if (sub === "/ai/brief") {
-      return new Response("この brief は POST 専用です。相方AIが POST で取得するもので、ブラウザで開くものではありません。", {
-        status: 405,
         headers: { "Content-Type": "text/plain; charset=utf-8" },
       });
     }

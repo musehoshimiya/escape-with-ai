@@ -69,7 +69,7 @@ Workers + Durable Objects で動かす構成にしてある（`worker/worker.mjs
 | GET | `/api/sessions/:id/state` | GUI 用の状態（調べる場所・手順・メール・キーワード等。秘密の答えは含まない） |
 | GET | `/api/sessions/:id/events?since=N` | イベント差分（ポーリング用） |
 | POST | `/api/sessions/:id/action` `{spot, ...}` | 人の操作（調べる／聞き込み／判定／ログイン／復号／認証／復旧） |
-| POST | `/api/sessions/:id/ai/brief` | AI 用：状態の文章化＋ヒント集＋用語集＋最近の出来事（POST 専用。GET は 405 を返し、プレイヤーがアドレスバーから覗けないようにしている） |
+| GET / POST | `/api/sessions/:id/ai/brief` | AI 用：状態の文章化＋ヒント集＋用語集＋最近の出来事（取得は GET が正本。POST でも同じものを返す） |
 | POST | `/api/sessions/:id/ai/message` `{text}` | AI が画面にメッセージを残す |
 | POST | `/api/sessions/:id/ai/celebrate` `{word, text}` | 復旧後、プレイヤーが達成キーワードを AI に言うと AI がお祝いを届ける（一度だけ） |
 | GET | `/api/sessions/:id/ai/celebrate-get?word=&text=` | POST できない AI 向けの GET 版お祝い |
