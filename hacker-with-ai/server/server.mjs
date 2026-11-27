@@ -20,6 +20,7 @@ import {
   buildMissionBrief,
   missionMeta,
   missionUnlocked,
+  prevMissionMeta,
 } from "./casebook.mjs";
 import { buildJoinPrompt, buildRejoinPrompt, buildMissionPrompt, isMobileUA } from "./prompt.mjs";
 import { handleMcp } from "./mcp.mjs";
@@ -189,6 +190,7 @@ const server = createServer(async (req, res) => {
         sessionId: s.id,
         name: s.name,
         mission: meta,
+        prev: prevMissionMeta(meta.id),
       });
       return sendJson(res, 200, { prompt });
     }

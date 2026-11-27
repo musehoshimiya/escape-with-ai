@@ -188,6 +188,11 @@ export function missionMeta(id) {
   return m ? { id: m.id, no: m.no, title: m.title, goal: m.goal } : null;
 }
 
+export function prevMissionMeta(id) {
+  const idx = ORDER.indexOf(id);
+  return idx > 0 ? missionMeta(ORDER[idx - 1]) : null;
+}
+
 export function missionUnlocked(c, id) {
   const idx = ORDER.indexOf(id);
   return idx >= 0 && idx + 1 <= c.unlocked;

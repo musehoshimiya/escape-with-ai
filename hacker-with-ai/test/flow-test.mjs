@@ -68,6 +68,7 @@ try {
   check("m1 専用 brief は 200 で専用表記がある", m1Brief.status === 200 && m1Brief.text.includes("ミッション1「病院からの依頼」専用"));
   const m1Prompt = await api(`/api/sessions/${sid}/mission-prompt/m1`);
   check("m1 の参加プロンプトは専用 brief の URL を指す", m1Prompt.status === 200 && m1Prompt.json.prompt.includes(`/ai/brief/m1`) && m1Prompt.json.prompt.includes("破棄してください"));
+  check("m1 の参加プロンプトに握手はない（最初のミッション）", !m1Prompt.json.prompt.includes("移行の握手"));
   check("参加プロンプトに brief 本文を貼る代替手段がある", prompt.includes("brief の本文を貼って"));
   check("参加プロンプトは接続確認に絞られ、ルール詳細は載っていない（2段構え）", !prompt.includes("合言葉（大事）") && prompt.includes("案内が正本"));
   check("参加プロンプトに Gemini の一行ルールがある", prompt.includes("Gemini ではこのゲームに参加できません"));
@@ -208,6 +209,9 @@ try {
   check("全事件解決前の celebrate は 400", earlyCeleb.status === 400);
   const briefAfter = await api(`/api/sessions/${sid}/ai/brief`);
   check("ミッション1の brief にお祝いの欄が出ない", !briefAfter.text.includes("復旧後のお祝い") && !briefAfter.text.includes("達成キーワード：「"));
+  const m2Prompt = await api(`/api/sessions/${sid}/mission-prompt/m2`);
+  check("m1 解決後は m2 の参加プロンプトが発行できる", m2Prompt.status === 200);
+  check("m2 の参加プロンプトに移行の握手がある", m2Prompt.json.prompt.includes("移行の握手") && m2Prompt.json.prompt.includes("ミッション1「病院からの依頼」") && m2Prompt.json.prompt.includes("解決済み"));
 
   console.log("== 再参加プロンプト ==");
   const rejoin = await api(`/api/sessions/${sid}/rejoin-prompt`);

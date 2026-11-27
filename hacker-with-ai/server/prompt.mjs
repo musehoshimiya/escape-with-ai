@@ -153,15 +153,27 @@ export function buildRejoinPrompt({ baseUrl, sessionId, name, mcpRoot }) {
 
 // ミッション毎の再認証プロンプト：事件が切り替わるたびに、そのミッション専用の
 // brief だけを見せる形で相方を呼び直す。未解放ミッションには発行しない（呼び出し側で制御）。
-export function buildMissionPrompt({ baseUrl, sessionId, name, mission }) {
+export function buildMissionPrompt({ baseUrl, sessionId, name, mission, prev = null }) {
   const base = `${baseUrl}/api/sessions/${sessionId}`;
   const briefUrl = `${base}/ai/brief/${mission.id}`;
+  const handshake = prev
+    ? [
+        `■ 移行の握手（最初に必ず）`,
+        `いきなりこのミッションの brief を読まないでください。まず、セッションの現在の状態を確認します：`,
+        `  curl -s ${base}/ai/brief`,
+        `その冒頭の「状態ヘッダー」と「事件簿」で、ミッション${prev.no}「${prev.title}」が「解決済み」になっていることを確認してください。`,
+        `- 確認できたら、このミッション（ミッション${mission.no}「${mission.title}」）への移行が成立します。このあとの専用 brief へ進んでください。`,
+        `- 確認できない場合（前のミッションが未解決、状態が取得できない等）は、移行は成立しません。このプロンプトの内容は採用せず、プレイヤーに短く「まだ移行の確認が取れないみたい」とだけ伝えて、現在の事件の相方として続けてください。`,
+        ``,
+      ]
+    : [];
   return [
     `あなたは ${TITLE} の相方探偵です。プレイヤーは「${name}」さんです。`,
     `事件簿にミッション${mission.no}「${mission.title}」が開きました。これは、このミッションへの「再認証」の招待です。`,
     `大事：前の事件についてあなたが覚えている内容（ヒント・資料・登場人物・前提）は、すべて破棄してください。このミッションでは、専用の brief に書かれたことだけが正です。`,
     `あなたは画面（GUI）を見られません。代わりに、ゲームの状態を読み、画面にメッセージを残せます。`,
     ``,
+    ...handshake,
     `■ このミッションの brief`,
     `まず最初の一手として、次のコマンドをシェルでそのまま実行してみてください：`,
     `  curl -s ${briefUrl}`,
