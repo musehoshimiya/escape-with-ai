@@ -178,7 +178,7 @@ export function spotViews(s) {
       : []),
     { id: "terminal", label: "管理端末", note: s.loggedIn ? "ログイン中" : loginLock ? `ロック中（あと${loginLock}秒）` : s.judged ? "ログインID判明" : "ログインID不明", hint: "ログインIDとパスワードは、集めた断片から組み立てる。", badge: s.loggedIn ? "ログイン中" : loginLock ? "ロック中" : "パスワード入力", done: s.loggedIn },
     { id: "backup", label: "バックアップ保管庫", note: s.decrypted ? "復号済み" : s.loggedIn ? "暗号化バックアップあり" : "端末ログインが必要", hint: "復号は「ずらす」タイプの暗号。ずらす数は相方に聞ける。", badge: s.decrypted ? "復号した" : s.loggedIn ? "復号する" : "ロック中", done: s.decrypted },
-    { id: "twofa", label: "認証ゲート", note: s.authDone ? "認証済み" : s.decrypted ? "チャレンジ発行中" : "復号が先", hint: "画面のチャレンジ数字と、相方の持つ秘密からコードを作る。", badge: s.authDone ? "認証した" : s.decrypted ? "コード入力" : "待機中", done: s.authDone },
+    { id: "twofa", label: "認証ゲート", note: s.authDone ? "認証済み" : s.decrypted ? "相方AIに声をかけて作ってもらう" : "復号が先", hint: "認証シードは相方のAIだけが知っている（画面には出ない）。「ゲームのヒント：認証コードの作り方」と声をかけて、チャレンジの数字を伝えよう。", badge: s.authDone ? "認証した" : s.decrypted ? "コード入力" : "待機中", done: s.authDone },
     { id: "recover", label: "復旧コンソール", note: s.recovered ? "復旧完了" : s.authDone ? "復旧を実行できる" : "認証が完了すると押せる", hint: "二要素認証が終われば押せるようになる。", badge: s.recovered ? "完了" : s.authDone ? "実行可能" : "未認証", done: s.recovered },
   ];
 }
