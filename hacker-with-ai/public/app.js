@@ -100,6 +100,23 @@ $("rejoin-btn").addEventListener("click", async () => {
   }
 });
 
+$("brief-copy-btn").addEventListener("click", async () => {
+  if (!sessionId || !state?.mission?.id) return;
+  const res = await fetch(`/api/sessions/${sessionId}/ai/brief/${state.mission.id}`);
+  if (!res.ok) return;
+  const text = await res.text();
+  try {
+    await navigator.clipboard.writeText(text);
+    $("brief-copy-btn").textContent = "コピーしました";
+    setTimeout(
+      () => ($("brief-copy-btn").textContent = "このミッションの brief 本文をコピー"),
+      2500,
+    );
+  } catch {
+    /* コピーできない環境では何もしない */
+  }
+});
+
 $("mission-prompt-btn").addEventListener("click", async () => {
   if (!sessionId || !state?.mission?.id) return;
   const res = await fetch(`/api/sessions/${sessionId}/mission-prompt/${state.mission.id}`);
