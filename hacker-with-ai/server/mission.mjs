@@ -166,19 +166,19 @@ export function spotViews(s) {
   const loginLock = lockLeft(s.loginLockedUntil);
   const unread = s.mails.filter((m) => !m.read).length;
   return [
-    { id: "mail", label: "院内メール", note: mailLock ? `確認ロック中（あと${mailLock}秒）` : s.judged ? "本物の通知を特定済み" : `未読 ${unread} 件`, badge: s.judged ? "特定済み" : mailLock ? "ロック中" : "通知を確認", done: s.judged },
-    { id: "roster", label: "職員名簿", note: s.readRoster ? "確認済み" : "職員の情報", badge: s.readRoster ? "調べた" : "", done: s.readRoster },
-    { id: "memo", label: "管理者メモ", note: s.readMemo ? "確認済み" : "管理者のデスクの付箋", badge: s.readMemo ? "調べた" : "", done: s.readMemo },
-    { id: "overview", label: "病院概要", note: s.readOverview ? "確認済み" : "開院年・病床数など", badge: s.readOverview ? "調べた" : "", done: s.readOverview },
-    { id: "sns", label: "公開情報の調査", note: s.readSns ? "確認済み" : "職員の公開SNSなど", badge: s.readSns ? "調べた" : "", done: s.readSns },
-    { id: "interview", label: "聞き込み", note: s.readInterview ? "証言を得た" : "関係者に話を聞く", badge: s.readInterview ? "聞いた" : "", done: s.readInterview },
+    { id: "mail", label: "院内メール", note: mailLock ? `確認ロック中（あと${mailLock}秒）` : s.judged ? "本物の通知を特定済み" : `未読 ${unread} 件`, hint: "本物の通知は1通だけ。送信元アドレスとリンク先をよく見る。", badge: s.judged ? "特定済み" : mailLock ? "ロック中" : "通知を確認", done: s.judged },
+    { id: "roster", label: "職員名簿", note: s.readRoster ? "確認済み" : "職員の情報", hint: "管理者の「好きなもの」が、パスワードの材料になる。", badge: s.readRoster ? "調べた" : "", done: s.readRoster },
+    { id: "memo", label: "管理者メモ", note: s.readMemo ? "確認済み" : "管理者のデスクの付箋", hint: "数字の断片が書かれている。どれとどれを組み合わせるかが鍵。", badge: s.readMemo ? "調べた" : "", done: s.readMemo },
+    { id: "overview", label: "病院概要", note: s.readOverview ? "確認済み" : "開院年・病床数など", hint: "開院年などの数字が、パスワードの材料になる。", badge: s.readOverview ? "調べた" : "", done: s.readOverview },
+    { id: "sns", label: "公開情報の調査", note: s.readSns ? "確認済み" : "職員の公開SNSなど", hint: "管理者の投稿に、好きなものや日常の手がかりがある。", badge: s.readSns ? "調べた" : "", done: s.readSns },
+    { id: "interview", label: "聞き込み", note: s.readInterview ? "証言を得た" : "関係者に話を聞く", hint: "証言どうしの矛盾は、相方AIが照合してくれる。", badge: s.readInterview ? "聞いた" : "", done: s.readInterview },
     ...(s.docEnabled
-      ? [{ id: "doc", label: "押収された文書", note: s.docRead ? "確認済み（出所に注意）" : "共有フォルダの受信箱にあった文書", badge: s.docRead ? "開いた" : "", done: s.docRead }]
+      ? [{ id: "doc", label: "押収された文書", note: s.docRead ? "確認済み（出所に注意）" : "共有フォルダの受信箱にあった文書", hint: "内容だけでなく、出所情報（作成者・作成日時）を見ること。", badge: s.docRead ? "開いた" : "", done: s.docRead }]
       : []),
-    { id: "terminal", label: "管理端末", note: s.loggedIn ? "ログイン中" : loginLock ? `ロック中（あと${loginLock}秒）` : s.judged ? "ログインID判明" : "ログインID不明", badge: s.loggedIn ? "ログイン中" : loginLock ? "ロック中" : "パスワード入力", done: s.loggedIn },
-    { id: "backup", label: "バックアップ保管庫", note: s.decrypted ? "復号済み" : s.loggedIn ? "暗号化バックアップあり" : "端末ログインが必要", badge: s.decrypted ? "復号した" : s.loggedIn ? "復号する" : "ロック中", done: s.decrypted },
-    { id: "twofa", label: "認証ゲート", note: s.authDone ? "認証済み" : s.decrypted ? "チャレンジ発行中" : "復号が先", badge: s.authDone ? "認証した" : s.decrypted ? "コード入力" : "待機中", done: s.authDone },
-    { id: "recover", label: "復旧コンソール", note: s.recovered ? "復旧完了" : s.authDone ? "復旧を実行できる" : "認証が完了すると押せる", badge: s.recovered ? "完了" : s.authDone ? "実行可能" : "未認証", done: s.recovered },
+    { id: "terminal", label: "管理端末", note: s.loggedIn ? "ログイン中" : loginLock ? `ロック中（あと${loginLock}秒）` : s.judged ? "ログインID判明" : "ログインID不明", hint: "ログインIDとパスワードは、集めた断片から組み立てる。", badge: s.loggedIn ? "ログイン中" : loginLock ? "ロック中" : "パスワード入力", done: s.loggedIn },
+    { id: "backup", label: "バックアップ保管庫", note: s.decrypted ? "復号済み" : s.loggedIn ? "暗号化バックアップあり" : "端末ログインが必要", hint: "復号は「ずらす」タイプの暗号。ずらす数は相方に聞ける。", badge: s.decrypted ? "復号した" : s.loggedIn ? "復号する" : "ロック中", done: s.decrypted },
+    { id: "twofa", label: "認証ゲート", note: s.authDone ? "認証済み" : s.decrypted ? "チャレンジ発行中" : "復号が先", hint: "画面のチャレンジ数字と、相方の持つ秘密からコードを作る。", badge: s.authDone ? "認証した" : s.decrypted ? "コード入力" : "待機中", done: s.authDone },
+    { id: "recover", label: "復旧コンソール", note: s.recovered ? "復旧完了" : s.authDone ? "復旧を実行できる" : "認証が完了すると押せる", hint: "二要素認証が終われば押せるようになる。", badge: s.recovered ? "完了" : s.authDone ? "実行可能" : "未認証", done: s.recovered },
   ];
 }
 
@@ -212,12 +212,65 @@ export function mailViews(s) {
   }));
 }
 
+// ノベルUIのステージ表示（今の場面）。立ち絵はプレースホルダで、
+// cast の img があれば実素材に差し替わる（差し替え手順は BUILDLOG）。
+function sceneFor(s) {
+  const stage = currentStage(s);
+  const locked = lockLeft(s.mailLockedUntil) || lockLeft(s.loginLockedUntil) || lockLeft(s.twofaLockedUntil);
+  const mood = s.recovered ? "clear" : locked ? "alert" : "normal";
+  if (stage <= 1) {
+    return {
+      key: "m1-s1", bg: "hospital", mood,
+      caption: "病院は全システム停止中。まずは手がかりを集めて、本物の通知を特定しよう。",
+      cast: [
+        { slot: "left", name: "山田", role: "病院の受付", color: "#b2d97f", tone: "困惑" },
+        { slot: "right", name: "小林 ユイ", role: "看護師", color: "#7fb2d9", tone: "不安" },
+      ],
+    };
+  }
+  if (stage === 2) {
+    return {
+      key: "m1-s2", bg: "hospital", mood,
+      caption: "本物の通知を特定した。断片を組み立てて、管理端末にログインしよう。",
+      cast: [{ slot: "right", name: "佐伯 恒一", role: "情報システム課 課長", color: "#d9b27f", tone: "真剣" }],
+    };
+  }
+  if (stage === 3 || stage === 4) {
+    return {
+      key: "m1-s34", bg: "server", mood,
+      caption: stage === 3 ? "管理端末にログイン中。暗号化されたバックアップを復号しよう。" : "認証ゲートが立ち上がった。チャレンジと相方の秘密からコードを作ろう。",
+      cast: [{ slot: "right", name: "佐伯 恒一", role: "情報システム課 課長", color: "#d9b27f", tone: "真剣" }],
+    };
+  }
+  if (stage === 5) {
+    return {
+      key: "m1-s5", bg: "server", mood,
+      caption: "二要素認証が通った。復旧コンソールを実行できる。",
+      cast: [{ slot: "right", name: "佐伯 恒一", role: "情報システム課 課長", color: "#d9b27f", tone: "期待" }],
+    };
+  }
+  return {
+    key: "m1-s6", bg: "clear", mood,
+    caption: "病院システムは復旧した。「事件の報告書」で答え合わせができる。",
+    cast: [
+      { slot: "left", name: "小林 ユイ", role: "看護師", color: "#7fb2d9", tone: "安堵" },
+      { slot: "right", name: "佐伯 恒一", role: "情報システム課 課長", color: "#d9b27f", tone: "安堵" },
+    ],
+  };
+}
+
+const STAGE_SPOT = { 1: "mail", 2: "terminal", 3: "backup", 4: "twofa", 5: "recover", 6: null };
+
 // GUI 用の状態一式（秘密の答えは含めない）。
 export function guiView(s) {
   return {
     spots: spotViews(s),
     stages: stageViews(s),
     stage: currentStage(s),
+    currentSpot: STAGE_SPOT[currentStage(s)],
+    scene: sceneFor(s),
+    clearMessage: "事件解決！病院システムは復旧したよ。おつかれさま。",
+    badEnd: false,
     inventory: inventory(s),
     keywords: visibleKeywords(s),
     mails: mailViews(s),
@@ -570,3 +623,19 @@ export function buildBrief(s, recentEvents, celebrateGetUrl) {
   }
   return lines.join("\n");
 }
+
+// 事件簿から参照するモジュール形。
+export const mission1 = {
+  id: "m1",
+  no: 1,
+  title: "病院からの依頼",
+  goal: "乗っ取られた病院のシステムを調べて、取り戻すこと。",
+  introText:
+    "最初の依頼は、あおぞら記念病院から。病院のシステムが乗っ取られ、電子カルテも予約も止まっている。受付の山田さんと看護師の小林さん、情報システム課の佐伯課長の話を聞きながら、手がかりを集めてシステムを取り戻してほしい。相方AIと相談しながら進めよう。",
+  createState: createMissionState,
+  guiView,
+  applyAction,
+  applyCelebrate,
+  buildBrief,
+  isCleared: (s) => s.recovered,
+};
