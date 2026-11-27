@@ -168,7 +168,7 @@ try {
   await evalS(`document.querySelector('#join-form').requestSubmit()`);
   await waitS(`document.querySelector('#prompt-text').value.length > 100`, "プロンプト生成");
   const promptVal = await evalS(`document.querySelector('#prompt-text').value`);
-  check("参加プロンプトは予備の招待文（主経路は URL 単独送信）", promptVal.includes("予備の招待文"));
+  check("参加プロンプトは POST 取得の案内を含む", promptVal.includes("-X POST"));
   check("プロンプトに探偵の枠組みが含まれる", promptVal.includes("探偵"));
 
   console.log("== 調査コンソール ==");
@@ -299,7 +299,7 @@ try {
   const sidB = createdB.sessionId;
   const actB = (body) => postB(`/api/sessions/${sidB}/action`, body);
   const stateB = () => getB(`/api/sessions/${sidB}/state`);
-  const briefB = () => getB(`/api/sessions/${sidB}/ai/brief`);
+  const briefB = () => postB(`/api/sessions/${sidB}/ai/brief`, {});
 
   // ミッション1を HTTP で解く（組み立ては flow-test と同じ手順）
   for (const spot of ["roster", "overview", "memo", "sns", "interview"]) await actB({ spot });
