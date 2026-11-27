@@ -244,11 +244,13 @@ export default {
         if (!item || item.status === "locked") {
           return json({ error: "mission locked" }, 403);
         }
+        const prevItem = (st.casebook ?? []).find((x) => x.no === item.no - 1);
         const prompt = buildMissionPrompt({
           baseUrl: url.origin,
           sessionId: m[1],
           name: st.name,
           mission: { id: item.id, no: item.no, title: item.title },
+          prev: prevItem ? { no: prevItem.no, title: prevItem.title } : null,
         });
         return json({ prompt });
       }
