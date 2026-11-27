@@ -709,6 +709,15 @@ async function selectImage(id) {
 
 function renderDocDialog(state) {
   if ($("doc-dialog").hidden || !state.doc) return;
+  $("doc-title").textContent = state.doc.title ?? "";
+  $("doc-meta").innerHTML = "";
+  for (const [k, v] of state.doc.meta ?? []) {
+    const dt = document.createElement("dt");
+    dt.textContent = k;
+    const dd = document.createElement("dd");
+    dd.textContent = v;
+    $("doc-meta").append(dt, dd);
+  }
   $("doc-source").textContent = state.doc.source;
   $("doc-body").textContent = state.doc.text;
 }

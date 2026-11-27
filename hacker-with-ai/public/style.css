@@ -295,6 +295,29 @@ textarea {
   font-size: 14px; line-height: 1.7; min-height: 180px; margin: 0 0 12px;
 }
 
+/* ---- 押収文書（ミッション4）：文書らしい体裁と、出所情報の分離 ---- */
+.doc-sheet {
+  background: var(--bg); border: 1px solid var(--border); border-top: 4px solid var(--accent);
+  padding: 18px 20px; margin: 0 0 12px;
+}
+.doc-title { font-size: 17px; font-weight: 700; text-align: center; letter-spacing: 0.08em; margin-bottom: 12px; }
+.doc-meta {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 14px;
+  font-size: 12.5px; margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.doc-meta dt { color: var(--muted); font-family: var(--mono); }
+.doc-meta dd { margin: 0; }
+.doc-body {
+  white-space: pre-wrap; word-break: break-word; font-family: inherit;
+  font-size: 14px; line-height: 1.8; margin: 0; min-height: 160px;
+}
+.doc-source-box {
+  border: 1px solid var(--warn); background: var(--panel);
+  padding: 10px 14px; margin: 0 0 12px;
+}
+.doc-source-title { font-size: 12px; font-family: var(--mono); letter-spacing: 0.05em; color: var(--warn); margin-bottom: 6px; }
+.doc-source { white-space: pre-line; font-size: 13px; line-height: 1.7; margin: 0; }
+
 /* ---- ヒントの折りたたみ（デフォルト閉。見たい人だけが開く） ---- */
 .hint-fold { margin: 6px 0; }
 .hint-fold > summary {
