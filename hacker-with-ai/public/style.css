@@ -354,6 +354,29 @@ textarea {
   padding: 10px 18px 14px; background: rgba(0,0,0,0.35); border-top: 1px solid var(--border);
 }
 
+/* ---- ノベルパート（聞き込み） ---- */
+.novel-window {
+  margin: 0 14px 14px; padding: 12px 14px 10px; min-height: 112px;
+  background: rgba(5, 8, 12, 0.82); border: 1px solid var(--border-strong);
+  cursor: pointer;
+}
+.novel-name {
+  display: inline-block; font-weight: 700; font-size: 13px;
+  background: var(--panel-2); border: 1px solid var(--warn); color: #ffe1a8;
+  padding: 1px 10px; margin-bottom: 6px;
+}
+.novel-name[hidden] { display: none; }
+.novel-text {
+  font-family: "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Yu Mincho", "YuMincho", "Noto Serif JP", serif;
+  font-size: 15.5px; line-height: 1.85; margin: 0; white-space: pre-wrap; word-break: break-word;
+}
+.novel-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.novel-progress { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+#novel-next { font-size: 12px; padding: 3px 12px; }
+/* 発言中の話者は明るく、他の話者は落とす */
+.cast-slot.speaking .cast-name { color: #ffe1a8; }
+.cast-slot.dimmed { opacity: 0.45; filter: saturate(0.55); }
+
 /* ---- バッド寄り結末バナー ---- */
 .badend-banner {
   border: 1px solid var(--warn); background: #241d07; color: #ffe1a8;

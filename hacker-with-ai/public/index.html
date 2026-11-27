@@ -126,6 +126,15 @@
           <div id="stage" class="stage bg-office">
             <div id="stage-cast" class="stage-cast"></div>
             <div id="stage-caption" class="stage-caption"></div>
+            <!-- ノベルパート（聞き込み）：ステージ上に名前プレート＋テキストウィンドウを出す -->
+            <div id="novel-window" class="novel-window" hidden>
+              <div id="novel-name" class="novel-name"></div>
+              <p id="novel-text" class="novel-text"></p>
+              <div class="novel-foot">
+                <span id="novel-progress" class="novel-progress"></span>
+                <button id="novel-next" type="button">▼ 次へ</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -348,6 +357,18 @@
     <p class="note">告発は取り返しがつきません。証拠の裏付けがある相手だけを選んでください。</p>
     <div id="accuse-list" class="accuse-list"></div>
     <p id="accuse-message" class="dialog-message"></p>
+  </div>
+</div>
+
+<!-- 資料ダイアログ（汎用モーダル：読むだけの資料スポット用） -->
+<div id="material-dialog" class="overlay" hidden>
+  <div class="dialog dialog-wide">
+    <div class="dialog-head">
+      <h2 id="material-title">資料</h2>
+      <button id="material-close" type="button" class="ghost">閉じる</button>
+    </div>
+    <pre id="material-body" class="mail-body"></pre>
+    <p class="note">この内容はバックログにも残っています。閉じたあとも読み返せます。</p>
   </div>
 </div>
 
