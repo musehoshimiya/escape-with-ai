@@ -211,7 +211,7 @@ try {
   check("全事件解決前の celebrate は 400", earlyCeleb.status === 400);
   const briefAfter = await brief(sid);
   check("ミッション1の brief にお祝いの欄が出ない", !briefAfter.text.includes("復旧後のお祝い") && !briefAfter.text.includes("達成キーワード：「"));
-  check("m1 解決後の brief に次の事件の案内（取り直し方式）がある", briefAfter.text.includes("■ 次の事件") && briefAfter.text.includes("取り直してください") && briefAfter.text.includes("ミッション2「写真コンテストの鑑定」"));
+  check("m1 解決後の brief に次の章の案内（取り直し方式）がある", briefAfter.text.includes("■ 次の章について") && briefAfter.text.includes("取り直してください") && briefAfter.text.includes("ミッション2「写真コンテストの鑑定」"));
 
   console.log("== 再参加プロンプト ==");
   const rejoin = await api(`/api/sessions/${sid}/rejoin-prompt`);

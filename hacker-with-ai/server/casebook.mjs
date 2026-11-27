@@ -186,17 +186,44 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
       item.status === "cleared" ? "解決済み" : item.status === "current" ? "対応中（いまの事件）" : item.status === "open" ? "未解決（読み返し可）" : "未解放";
     lines.push(`・ミッション${item.no}「${item.title}」：${mark}`);
   }
-  lines.push(``, `■ いまの事件：ミッション${m.no}「${m.title}」`, `目的：${m.goal}`, ``);
-  lines.push(m.buildBrief(state(c), recentEvents, celebrateGetUrl, { celebrate: allCleared(c) }));
-  // 事件の切り替わりは「同じ brief の取り直し」で起きる。専用URLや乗り換え手順は無い。
+  // brief は「でかい一つのシナリオ」として渡す（2026-11-27 ユーザー発案）。
+  // 事件の切り替わりで文書を取り替えるのではなく、同じ文書に章が増えていく形にし、
+  // 相方が「別の事件に乗り換える」感覚を持たないようにする。画面側は従来通り事件ごとに切り替わる。
+  lines.push(
+    ``,
+    `■ シナリオの読み方`,
+    `この brief は、事件全体を1つのシナリオとして書いたものです。章は事件ごとに分かれていて、「いまの事件」と印のついた章だけが現在の事件です。合言葉への回答は、必ず「いまの事件」の章の中から答えてください。解決済みの章は、これまでの物語として読むためのものです（その章のヒントはもう使いません）。事件が進むと、このシナリオに新しい章が増えます。取り先は変わりません。`,
+    ``,
+  );
+  for (const id of ORDER) {
+    const mm = MODULES[id];
+    const st = c.states?.[id];
+    if (id === c.current) {
+      lines.push(`■ 第${mm.no}章 ミッション${mm.no}「${mm.title}」（いまの事件）`, `目的：${mm.goal}`, ``);
+      lines.push(m.buildBrief(state(c), recentEvents, celebrateGetUrl, { celebrate: allCleared(c) }));
+      lines.push(``);
+    } else if (st && mm.isCleared(st)) {
+      // 解決済みの章は「あらすじ＋報告書」で残す（ヒント集は載せない）。
+      lines.push(`■ 第${mm.no}章 ミッション${mm.no}「${mm.title}」（解決済み）`);
+      lines.push(mm.introText);
+      const view = mm.guiView(st);
+      if (view.debriefIntro) lines.push(view.debriefIntro);
+      if (Array.isArray(view.debrief)) {
+        for (const d of view.debrief) lines.push(`・${d.title}：${d.learned}`);
+      }
+      lines.push(``);
+    } else if (st) {
+      lines.push(`■ 第${mm.no}章 ミッション${mm.no}「${mm.title}」（未解決：いまは別の事件に対応中）`, ``);
+    }
+  }
+  // 事件の切り替わりは「同じシナリオに章が増える」形で起きる。乗り換え手順は無い。
   const idx = ORDER.indexOf(c.current);
   if (m.isCleared(state(c)) && idx + 1 < ORDER.length) {
     const next = MODULES[ORDER[idx + 1]];
     if (missionUnlocked(c, next.id)) {
       lines.push(
-        ``,
-        `■ 次の事件`,
-        `この事件は解決済みです。次のミッション${next.no}「${next.title}」が開いています。プレイヤーから「次の事件だよ」と声がかかったら、この brief をもう一度取り直してください。同じ取り先で、次の事件の内容に切り替わっています。それまでは、前の事件の前提で次の事件に答えないでください。`,
+        `■ 次の章について`,
+        `この事件は解決済みです。次のミッション${next.no}「${next.title}」が開いています。プレイヤーが画面で次の事件に進み、「次の事件だよ」と声をかけたら、この brief をもう一度取り直してください。同じシナリオに次の章が増えています。それまでは、前の事件の前提で次の事件に答えないでください。`,
       );
     }
   }

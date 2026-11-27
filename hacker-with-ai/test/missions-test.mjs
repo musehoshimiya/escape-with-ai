@@ -8,7 +8,7 @@
 
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
-import { createCaseState, guiView, applyAction, applyCelebrate, buildBrief, buildMissionBrief, allCleared } from "../server/casebook.mjs";
+import { createCaseState, guiView, applyAction, applyCelebrate, buildBrief, allCleared } from "../server/casebook.mjs";
 import { decodePixels } from "../server/mission3.mjs";
 import { POISON_DOC, M3 } from "../server/content.mjs";
 
@@ -34,9 +34,9 @@ let texts = applyAction(c, { spot: "select_mission", mission: "m2" });
 check("未解放の事件は開けない", c.current === "m1" && texts.join("").includes("まだ解放されていない"));
 check("m1 の brief に汚染文が入らない", !brief(c).includes(POISON_DOC) && !brief(c).includes("犯人はホゲ"));
 const CEL_URL = "http://x/ai/celebrate-get?word=w";
-check("未解放の m2 専用 brief は発行されない", buildMissionBrief(c, "m2", "", CEL_URL) === null);
-check("未解放の m4 専用 brief は発行されない", buildMissionBrief(c, "m4", "", CEL_URL) === null);
-check("m1 専用 brief は m1 のヒントだけを含む", buildMissionBrief(c, "m1", "", CEL_URL).includes("バックアップの復号"));
+check("初期 brief に未解放 m2 の内容は含まれない", !brief(c).includes("ファイルの鑑定方法"));
+check("初期 brief の現在の章に m1 のヒントが含まれる", brief(c).includes("バックアップの復号"));
+check("初期 brief にシナリオの読み方がある", brief(c).includes("シナリオの読み方"));
 
 console.log("== ミッション1を解く（解放チェーン確認用） ==");
 const s1 = c.states.m1;
@@ -57,8 +57,8 @@ check("m1 解決", guiView(c).recovered === true);
 v = guiView(c);
 check("m2 が解放された", v.casebook[1].status === "open" || v.casebook[1].status === "cleared");
 check("m1 の報告書は7項目", Array.isArray(v.debrief) && v.debrief.length === 7);
-check("解決後の brief 末尾に次の brief への完全な URL が入る（遷移は brief 内で辿る）",
-  brief(c).includes("次の事件へ") && brief(c).includes("http://x/ai/brief/m2"));
+check("解決後の brief に次の章の案内が入る（章が増える方式）",
+  brief(c).includes("■ 次の章について") && brief(c).includes("次の章が増えています"));
 
 console.log("== ミッション2（拡張子改ざん＋EXIF） ==");
 texts = applyAction(c, { spot: "select_mission", mission: "m2" });
@@ -72,15 +72,12 @@ const s2 = c.states.m2;
 for (const f of s2.files) applyAction(c, { spot: "file_open", id: f.id });
 check("全ファイル開封", guiView(c).files.every((f) => f.opened && f.detail));
 check("brief に鑑定ヒントが出る", brief(c).includes("ファイルの鑑定方法"));
-check("brief 冒頭に現在地バナー（いまの事件はミッション2）", brief(c).includes("現在地：いまの事件はミッション2"));
-check("brief 先頭に状態ヘッダー（指紋つき）", brief(c).includes("状態ヘッダー") && brief(c).includes("状態指紋"));
-check("案内に読み直しの手順と ?r= の指定がある", brief(c).includes("状態の読み直し") && brief(c).includes("?r="));
-const m2Brief = buildMissionBrief(c, "m2", "", CEL_URL);
-check("解放後は m2 専用 brief が発行される", typeof m2Brief === "string" && m2Brief.includes("ミッション2「写真コンテストの鑑定」専用"));
-check("m2 専用 brief に m1 のヒントは混ざらない", m2Brief.includes("ファイルの鑑定方法") && !m2Brief.includes("バックアップの復号"));
-check("m2 解放後も m4 専用 brief は発行されない", buildMissionBrief(c, "m4", "", CEL_URL) === null);
-check("解決済み m1 の専用 brief 末尾に、次の brief を読む指示がある", buildMissionBrief(c, "m1", "", CEL_URL).includes("次の行動") && buildMissionBrief(c, "m1", "", CEL_URL).includes("/ai/brief/m2"));
-check("現在地バナーに解決済みのミッション1が明記される", brief(c).includes("は解決済みです"));
+check("brief 先頭は状態の1行（指紋つき）", brief(c).startsWith("■ 状態：") && brief(c).includes("指紋："));
+check("案内に読み直しの手順がある", brief(c).includes("状態の読み直し"));
+check("シナリオに第1章（解決済み）と第2章（いまの事件）が載る", brief(c).includes("第1章 ミッション1「病院からの依頼」（解決済み）") && brief(c).includes("第2章 ミッション2「写真コンテストの鑑定」（いまの事件）"));
+check("解決済みの章に m1 のヒント集は載らない（あらすじのみ）", !brief(c).includes("バックアップの復号"));
+check("現在の章に m2 の鑑定ヒントがある", brief(c).includes("ファイルの鑑定方法"));
+check("未解放 m4 の内容はシナリオに含まれない", !brief(c).includes("押収文書"));
 check("brief にマジックナンバーの表がある", brief(c).includes("FF D8"));
 const genuineFile = s2.files.find((f) => f.genuine);
 const decoyFile = s2.files.find((f) => !f.genuine);
