@@ -86,38 +86,6 @@ function enterRoom() {
   enterRoom();
 })();
 
-$("rejoin-btn").addEventListener("click", async () => {
-  if (!sessionId) return;
-  const res = await fetch(`/api/sessions/${sessionId}/rejoin-prompt`);
-  if (!res.ok) return;
-  const data = await res.json();
-  try {
-    await navigator.clipboard.writeText(data.prompt);
-    $("rejoin-btn").textContent = "コピーしました";
-    setTimeout(() => ($("rejoin-btn").textContent = "再参加プロンプトをコピー"), 2500);
-  } catch {
-    /* コピーできない環境では何もしない */
-  }
-});
-
-$("brief-copy-btn").addEventListener("click", async () => {
-  if (!sessionId) return;
-  // 画面（同一オリジン）からは POST で取得して本文をコピーする（GET でも同じものが返る）。
-  const res = await fetch(`/api/sessions/${sessionId}/ai/brief`, { method: "POST" });
-  if (!res.ok) return;
-  const text = await res.text();
-  try {
-    await navigator.clipboard.writeText(text);
-    $("brief-copy-btn").textContent = "コピーしました";
-    setTimeout(
-      () => ($("brief-copy-btn").textContent = "brief 本文をコピー（貼る用）"),
-      2500,
-    );
-  } catch {
-    /* コピーできない環境では何もしない */
-  }
-});
-
 async function fetchState() {
   const res = await fetch(`/api/sessions/${sessionId}/state`);
   if (!res.ok) return null;
