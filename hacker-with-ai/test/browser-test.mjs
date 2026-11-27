@@ -333,13 +333,16 @@ try {
   await actB({ spot: "recover" });
   check("HTTP でミッション1を解けた", (await stateB()).recovered === true);
 
-  // ミッション2へ進めて、ファイルダイアログを画面で確認
-  await actB({ spot: "select_mission", mission: "m2" });
-  await actB({ spot: "guide" });
+  // 解決バナーの「次の事件へ」ボタンでミッション2へ遷移できることを画面で確認
   await sendS("Page.navigate", { url: `${BASE}/?session=${sidB}` });
   await waitS(`!document.querySelector('#view-room').hidden`, "第2セッションのコンソール表示");
+  await waitS(`!document.querySelector('#next-case-btn').hidden`, "次の事件へボタンの表示");
+  check("解決バナーに次の事件へのボタンが出る", await evalS(`document.querySelector('#next-case-btn').textContent.includes('写真コンテストの鑑定')`));
+  check("事件簿でミッション2が「新しい依頼」になっている", await evalS(`document.querySelector('#casebook').textContent.includes('新しい依頼')`));
+  await evalS(`document.querySelector('#next-case-btn').click()`);
   await waitS(`document.querySelector('#mission-title').textContent.includes('写真コンテストの鑑定')`, "ミッション2のタイトル");
-  check("事件簿からミッション2が開いた状態で表示される", true);
+  check("次の事件ボタンでミッション2へ遷移できる", true);
+  await actB({ spot: "guide" });
   check("ミッション2のステージに大場さんが立つ", await evalS(`document.querySelector('#stage').textContent.includes('大場 恒夫')`));
   await evalS(`document.querySelector('[data-spot="files"]').click()`);
   await waitS(`!document.querySelector('#files-dialog').hidden`, "ファイルダイアログ表示");

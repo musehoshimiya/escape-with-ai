@@ -321,6 +321,9 @@ textarea {
 .case-item.is-current { border-color: var(--warn); cursor: default; }
 .case-item.is-cleared { opacity: 0.75; }
 .case-item.is-locked { opacity: 0.45; cursor: not-allowed; }
+.case-item.is-new { border-color: var(--info); box-shadow: 0 0 0 1px var(--info); }
+.case-item.is-new .case-status { color: var(--info); font-weight: 700; }
+#next-case-btn { margin-top: 10px; }
 .case-title { font-weight: 700; font-size: 14px; }
 .case-status { font-family: var(--mono); font-size: 11px; color: var(--muted); flex: none; }
 .case-item.is-current .case-status { color: var(--warn); }
