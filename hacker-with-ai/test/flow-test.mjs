@@ -69,10 +69,10 @@ try {
   check("ミッション別参加プロンプトは廃止されている", missionPromptGone.status === 404);
   check("参加プロンプトに brief 本文を貼る代替手段がある", prompt.includes("brief の本文を貼って"));
   check("参加プロンプトに brief の URL が載っている", prompt.includes(`${sid}/ai/brief`));
-  check("参加プロンプトは接続確認に絞られ、ルール詳細は載っていない（2段構え）", !prompt.includes("合言葉（大事）") && prompt.includes("案内が正本"));
+  check("参加プロンプトは PoC 方式（接続のしかた＋ルール自己完結）", prompt.includes("■ 接続のしかた") && prompt.includes("まず最初の一手として") && prompt.includes("考え込む前に") && prompt.includes("合言葉（大事）"));
   check("参加プロンプトに Gemini の一行ルールがある", prompt.includes("Gemini ではこのゲームに参加できません"));
   check("参加プロンプトに Perplexity の一行ルールがある", prompt.includes("Perplexity ではこのゲームに参加できません"));
-  check("参加プロンプトに brief 以外のエンドポイントは開示されない（第1段は最小限）", !prompt.includes("/ai/message") && !prompt.includes("/ai/celebrate"));
+  check("参加プロンプトに全エンドポイントの curl が開示されている（PoC 方式）", prompt.includes("/ai/message") && prompt.includes("/ai/celebrate") && prompt.includes("小細工はしないでください"));
 
   console.log("== スマホ参加時の案内（UA出し分け） ==");
   const mkSession = async (ua) => {
