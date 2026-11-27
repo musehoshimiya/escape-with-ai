@@ -58,6 +58,8 @@ $("copy-url-btn").addEventListener("click", async () => {
     document.execCommand("copy");
   }
   $("copy-url-btn").textContent = "コピーしました";
+  setStep(2, "done");
+  setStep(3, "active");
   setTimeout(() => ($("copy-url-btn").textContent = "URLをコピー"), 2500);
 });
 

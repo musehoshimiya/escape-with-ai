@@ -48,13 +48,13 @@
         <li id="step2" class="step locked">
           <span class="step-num">2</span>
           <div class="step-body">
-            <h2>相方AIに、まず brief の URL だけを送る</h2>
-            <p class="note">URL だけを単独のメッセージで送ると、AI が自分で読みに行きます。そのあと、続けて参加プロンプトを貼ってください。</p>
+            <h2>相方AIに brief の URL を送る</h2>
+            <p class="note">URL だけを単独のメッセージで送ると、AI が自分で読みに行って参加します。基本的にはこれだけで OK です。</p>
             <div class="row">
               <input id="brief-url-text" type="text" readonly placeholder="まず「調査を開始」を押してください">
               <button id="copy-url-btn" type="button" disabled>URLをコピー</button>
             </div>
-            <p class="note">続けて、こちらを貼ってください：</p>
+            <p class="note">うまく読みに行けなかった時だけ、こちらも貼ってください（予備の参加プロンプト）：</p>
             <textarea id="prompt-text" rows="10" readonly placeholder="まず「調査を開始」を押してください"></textarea>
             <div class="row">
               <button id="copy-btn" type="button" disabled>プロンプトをコピー</button>
