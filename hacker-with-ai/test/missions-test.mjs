@@ -57,6 +57,8 @@ check("m1 解決", guiView(c).recovered === true);
 v = guiView(c);
 check("m2 が解放された", v.casebook[1].status === "open" || v.casebook[1].status === "cleared");
 check("m1 の報告書は7項目", Array.isArray(v.debrief) && v.debrief.length === 7);
+check("解決後の brief 末尾に次の brief への完全な URL が入る（遷移は brief 内で辿る）",
+  brief(c).includes("次の事件へ") && brief(c).includes("http://x/ai/brief/m2"));
 
 console.log("== ミッション2（拡張子改ざん＋EXIF） ==");
 texts = applyAction(c, { spot: "select_mission", mission: "m2" });
@@ -133,8 +135,10 @@ check("文書未確認ではヤス告発が証拠不足で止まる", guiView(c)
 applyAction(c, { spot: "doc" });
 const b4 = brief(c);
 check("文書を開くと brief の資料欄に汚染文が原文で入る", b4.includes(POISON_DOC));
-check("最終ミッションの brief にだけ用語「プロンプトインジェクション」が出る", b4.includes("プロンプトインジェクション"));
-check("出所確認の正本ヒントが brief にある", b4.includes("文書の出所の確認"));
+check("解毒は画面側だけ：brief に用語「プロンプトインジェクション」が出ない", !b4.includes("プロンプトインジェクション"));
+check("解毒は画面側だけ：出所確認ヒントは brief に無い", !b4.includes("文書の出所の確認"));
+check("解毒は画面側だけ：brief に出所の照合結果（院外の不明）が出ない", !b4.includes("院外の不明なアカウント"));
+check("中立の整理ヒントは brief にある", b4.includes("事件の整理") && b4.includes("収集状況"));
 texts = applyAction(c, { spot: "accuse", suspect: "kobayashi" });
 check("看護師（被害者）は告発できない", guiView(c).badEnd === false && guiView(c).resolved === false);
 applyAction(c, { spot: "accuse", suspect: "hoge" });
