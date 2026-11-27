@@ -294,3 +294,77 @@ textarea {
   white-space: pre-wrap; word-break: break-word; font-family: inherit;
   font-size: 14px; line-height: 1.7; min-height: 180px; margin: 0 0 12px;
 }
+
+/* ---- ヒントの折りたたみ（デフォルト閉。見たい人だけが開く） ---- */
+.hint-fold { margin: 6px 0; }
+.hint-fold > summary {
+  cursor: pointer; font-size: 12px; color: var(--muted);
+  font-family: var(--mono); letter-spacing: 0.05em; list-style: none;
+}
+.hint-fold > summary::-webkit-details-marker { display: none; }
+.hint-fold > summary::before { content: "▸ "; }
+.hint-fold[open] > summary::before { content: "▾ "; }
+.hint-fold > summary:hover { color: var(--info); }
+.hint-fold .note { margin-top: 4px; }
+.spot-cell { display: flex; flex-direction: column; gap: 2px; }
+.spot-cell .spot { flex: 1; width: 100%; }
+.spot-hint { margin: 0; padding: 0 2px; }
+
+/* ---- 事件簿 ---- */
+.casebook { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.case-item {
+  width: 100%; text-align: left; padding: 8px 10px; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+}
+.case-item:hover { border-color: var(--info); }
+.case-item.is-current { border-color: var(--warn); cursor: default; }
+.case-item.is-cleared { opacity: 0.75; }
+.case-item.is-locked { opacity: 0.45; cursor: not-allowed; }
+.case-title { font-weight: 700; font-size: 14px; }
+.case-status { font-family: var(--mono); font-size: 11px; color: var(--muted); flex: none; }
+.case-item.is-current .case-status { color: var(--warn); }
+.case-item.is-cleared .case-status { color: var(--ok); }
+
+/* ---- ステージ（ノベルUI） ---- */
+.stage {
+  position: relative; border: 1px solid var(--border); overflow: hidden;
+  min-height: 300px; display: flex; flex-direction: column; justify-content: flex-end;
+  background: linear-gradient(180deg, #232a38 0%, #171c26 70%, #12151d 100%);
+}
+.stage.bg-hospital { background: linear-gradient(180deg, #26343a 0%, #182226 70%, #10161a 100%); }
+.stage.bg-server { background: linear-gradient(180deg, #1d2733 0%, #131a24 70%, #0d1219 100%); }
+.stage.bg-photo { background: linear-gradient(180deg, #38302a 0%, #241f1a 70%, #181410 100%); }
+.stage.bg-home { background: linear-gradient(180deg, #33302a 0%, #22201b 70%, #16140f 100%); }
+.stage.bg-office { background: linear-gradient(180deg, #2a3040 0%, #1b202e 70%, #12151f 100%); }
+.stage.bg-clear { background: linear-gradient(180deg, #2c3a34 0%, #1c2822 70%, #121a16 100%); }
+.stage.mood-alert { box-shadow: inset 0 0 0 2px var(--warn); }
+.stage-cast {
+  flex: 1; display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 18px 24px 0; gap: 8px;
+}
+.cast-slot { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.cast-slot.empty { visibility: hidden; }
+.cast-silhouette svg { width: 92px; height: 128px; opacity: 0.9; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
+.cast-img { max-height: 190px; max-width: 100%; object-fit: contain; }
+.cast-name { font-weight: 700; font-size: 14px; margin-top: 4px; }
+.cast-role { font-size: 11px; color: var(--muted); text-align: center; }
+.stage-caption {
+  font-family: serif; font-size: 15px; line-height: 1.7; text-align: center;
+  padding: 10px 18px 14px; background: rgba(0,0,0,0.35); border-top: 1px solid var(--border);
+}
+
+/* ---- バッド寄り結末バナー ---- */
+.badend-banner {
+  border: 1px solid var(--warn); background: #241d07; color: #ffe1a8;
+  padding: 12px 16px; margin-bottom: 12px;
+}
+
+/* ---- 告発ダイアログ ---- */
+.accuse-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.accuse-btn {
+  text-align: left; padding: 10px 12px; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.accuse-btn:hover { border-color: var(--warn); }
