@@ -30,12 +30,12 @@ const PUBLIC_DIR = fileURLToPath(new URL("../public/", import.meta.url));
 
 const sessions = new Map();
 
-function newSession(name) {
+function newSession(name, mobile = false) {
   const id = randomBytes(6).toString("hex"); // 12桁。セッションIDそのものが参加キー
   const s = {
     id,
     name,
-    case: createCaseState(),
+    case: createCaseState({ name, mobile }),
     events: [],
     seq: 0,
     createdAt: Date.now(),
@@ -113,10 +113,11 @@ const server = createServer(async (req, res) => {
   if (path === "/api/sessions" && req.method === "POST") {
     const body = await readJson(req);
     const name = String(body.name ?? "").trim() || "プレイヤー";
-    const s = newSession(name);
+    const mobile = isMobileUA(req.headers["user-agent"]);
+    const s = newSession(name, mobile);
     const baseUrl = publicBase(req);
     const mcpRoot = `${baseUrl}/mcp`;
-    const joinPrompt = buildJoinPrompt({ baseUrl, sessionId: s.id, name, mcpRoot, isMobile: isMobileUA(req.headers["user-agent"]) });
+    const joinPrompt = buildJoinPrompt({ baseUrl, sessionId: s.id, name, mcpRoot, isMobile: mobile });
     return sendJson(res, 201, { sessionId: s.id, name, joinPrompt, mcpUrl: mcpRoot });
   }
 

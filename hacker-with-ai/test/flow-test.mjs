@@ -57,7 +57,7 @@ try {
   check("sessionId 12桁hex", /^[a-f0-9]{12}$/.test(sid));
   const prompt = created.json.joinPrompt;
   check("参加プロンプトに brief の curl がある", prompt.includes(`/api/sessions/${sid}/ai/brief`));
-  check("参加プロンプトに用語の合言葉がある", prompt.includes("ゲームの用語："));
+  check("参加プロンプトは予備の招待文に縮小されている", prompt.includes("予備の招待文") && prompt.length < 1500);
 
   console.log("== ミッション専用 brief と再認証プロンプトの解放ガード ==");
   const lockedBrief = await api(`/api/sessions/${sid}/ai/brief/m2`);
@@ -70,7 +70,7 @@ try {
   check("m1 の参加プロンプトは専用 brief の URL を指す", m1Prompt.status === 200 && m1Prompt.json.prompt.includes(`/ai/brief/m1`) && m1Prompt.json.prompt.includes("破棄してください"));
   check("m1 の参加プロンプトに握手はない（最初のミッション）", !m1Prompt.json.prompt.includes("移行の握手"));
   check("参加プロンプトに brief 本文を貼る代替手段がある", prompt.includes("brief の本文を貼って"));
-  check("参加プロンプトは URL 単独メッセージ方式（URLだけ投げると読みに行く）", prompt.includes("URL だけを単独のメッセージで送ります"));
+  check("参加プロンプトは URL 主経路の予備である旨が書かれている", prompt.includes("brief の URL だけでは参加できなかった場合の、予備の招待文"));
   check("参加プロンプトは接続確認に絞られ、ルール詳細は載っていない（2段構え）", !prompt.includes("合言葉（大事）") && prompt.includes("案内が正本"));
   check("参加プロンプトに Gemini の一行ルールがある", prompt.includes("Gemini ではこのゲームに参加できません"));
   check("参加プロンプトに Perplexity の一行ルールがある", prompt.includes("Perplexity ではこのゲームに参加できません"));
@@ -83,18 +83,21 @@ try {
       headers: { "Content-Type": "application/json", "User-Agent": ua },
       body: JSON.stringify({ name: "UA検証" }),
     });
-    return (await r.json()).joinPrompt;
+    const j = await r.json();
+    const br = await fetch(`${BASE}/api/sessions/${j.sessionId}/ai/brief`).then((x) => x.text());
+    return { prompt: j.joinPrompt, brief: br };
   };
-  const mobilePrompt = await mkSession("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1");
-  check("スマホUAでは PC 推奨の一言がプロンプトに入る", mobilePrompt.includes("PCの方が遊びやすいよ"));
-  check("スマホUAでも参加自体は通常どおり成立する", mobilePrompt.includes("相方探偵として招待されました"));
-  const desktopPrompt = await mkSession("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36");
-  check("PCのUAでは推奨の一言は入らない", !desktopPrompt.includes("PCの方が遊びやすいよ"));
+  const mobileS = await mkSession("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1");
+  check("スマホUAでは PC 推奨の一言が brief に入る", mobileS.brief.includes("スマートフォンから参加しています"));
+  check("スマホUAでも参加自体は通常どおり成立する", mobileS.prompt.includes("相方探偵として招待されました"));
+  const desktopS = await mkSession("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36");
+  check("PCのUAでは推奨の一言は brief に入らない", !desktopS.brief.includes("スマートフォンから参加しています"));
 
   console.log("== brief（資料未読の時点） ==");
   const brief0 = await api(`/api/sessions/${sid}/ai/brief`);
   check("brief が返る", brief0.status === 200);
-  check("brief の冒頭に相方への案内（第2段）がある", brief0.text.slice(0, 800).includes("■ 相方への案内"));
+  check("brief の冒頭に相方への案内（第2段）がある", brief0.text.slice(0, 1200).includes("■ 相方への案内"));
+  check("brief の冒頭に自己紹介（ようこそ）とプレイヤー名がある", brief0.text.includes("ようこそ") && brief0.text.includes("「検証プレイヤー」さん"));
   check("brief は状態ヘッダーで始まる", brief0.text.startsWith("■ 状態ヘッダー"));
   check("案内に合言葉のルールが含まれる", brief0.text.includes("合言葉（大事）") && brief0.text.includes("ゲームのヒント："));
   check("案内にお祝いの作法が含まれる", brief0.text.includes("ゲームのお祝い："));

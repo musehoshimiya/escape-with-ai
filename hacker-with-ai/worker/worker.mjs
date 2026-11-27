@@ -94,7 +94,7 @@ export class Session {
         id: String(body.id ?? ""),
         name,
         origin: this.origin,
-        case: createCaseState(),
+        case: createCaseState({ name, mobile: !!body.mobile }),
         events: [],
         seq: 0,
         createdAt: Date.now(),
@@ -205,15 +205,16 @@ export default {
       const body = await req.json().catch(() => ({}));
       const name = String(body.name ?? "").trim() || "プレイヤー";
       const id = newSessionId();
+      const mobile = isMobileUA(req.headers.get("user-agent"));
       const stub = env.SESSION.getByName(id);
       const initRes = await stub.fetch(`https://session/init?origin=${encodeURIComponent(url.origin)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, name }),
+        body: JSON.stringify({ id, name, mobile }),
       });
       if (!initRes.ok) return json({ error: "failed to create session" }, 500);
       const mcpRoot = `${url.origin}/mcp`;
-      const joinPrompt = buildJoinPrompt({ baseUrl: url.origin, sessionId: id, name, mcpRoot, isMobile: isMobileUA(req.headers.get("user-agent")) });
+      const joinPrompt = buildJoinPrompt({ baseUrl: url.origin, sessionId: id, name, mcpRoot, isMobile: mobile });
       return json({ sessionId: id, name, joinPrompt, mcpUrl: mcpRoot }, 201);
     }
 
