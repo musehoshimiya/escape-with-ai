@@ -4,7 +4,7 @@
 // guiView は「いま開いているミッション」の view をトップレベルに保ち、
 // 事件簿の情報（casebook / mission）を付け足す（既存テストの前提を壊さない）。
 
-import { CASEBOOK } from "./content.mjs";
+import { CASEBOOK, GAME } from "./content.mjs";
 import { PARTNER_GUIDE } from "./prompt.mjs";
 import { mission1 } from "./mission.mjs";
 import { mission2 } from "./mission2.mjs";
@@ -14,16 +14,35 @@ import { mission4 } from "./mission4.mjs";
 export const MODULES = { m1: mission1, m2: mission2, m3: mission3, m4: mission4 };
 const ORDER = CASEBOOK.map((c) => c.id);
 
-export function createCaseState() {
+export function createCaseState(opts = {}) {
   const c = {
     current: "m1",
     unlocked: 1, // 解放済みのミッション数（ORDER の先頭から）
     states: {},
     opened: {}, // intro を表示済みのミッション
+    playerName: opts.name ?? null, // brief の自己紹介で使う（URL だけで参加が成立するように）
+    mobile: !!opts.mobile,
   };
   c.states.m1 = mission1.createState();
   c.opened.m1 = true;
   return c;
+}
+
+// brief の冒頭に置く自己紹介。参加に必要な情報（誰が・何の・どう関わるか）は
+// すべて brief 側に寄せ、プレイヤーの作業は「URL を送る」だけにする（2026-11-27 方針）。
+function welcomeLines(c) {
+  const lines = [
+    `■ ようこそ（この brief について）`,
+    `あなたは『${GAME.workingTitle}』（${GAME.titleNote}）の相方探偵です。${c.playerName ? `プレイヤーは「${c.playerName}」さんで、` : ``}${GAME.agencyName}の探偵コンビの現場担当。あなたは解析担当で、手がかりの組み立てや計算が仕事です（材料の収集と入力はプレイヤーの仕事）。`,
+    `対象は作中の架空の閉じたシステムだけです。現実のシステムへの侵入方法を話す場面はありません。調査の手つきの正体は現実のセキュリティの考え方で、用語は聞かれたら概念だけをやさしく説明してください。`,
+    `いつもの会話の流れのまま、普段どおりの距離感で付き合ってください。参加できたら、参加できたことと合言葉の使い方を一言添えて返事をしてください。`,
+  ];
+  if (c.mobile) {
+    lines.push(
+      `プレイヤーはスマートフォンから参加しています。スマホでも遊べますが、PC の方が遊びやすい旨を、最初の挨拶で一度だけ軽く伝えてください。`,
+    );
+  }
+  return lines;
 }
 
 function mod(c) {
@@ -149,6 +168,7 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
     `■ 状態ヘッダー（取得のたびに確認）：いまの事件はミッション${m.no}「${m.title}」。状態指紋：${fp}。前に読んだ brief と指紋や事件が違っていたら、前の brief で覚えたヒント・資料・登場人物は破棄して、この brief だけを正としてください。`,
     ``,
   );
+  lines.push(``, ...welcomeLines(c), ``);
   lines.push(PARTNER_GUIDE, ``);
   // 現在地バナー：相方AIが「前の事件にいる」と取り違える事故への対策として、
   // brief の冒頭で、いまの事件と解決済みの事件を言い切る。
@@ -226,6 +246,7 @@ export function buildMissionBrief(c, missionId, recentEvents, celebrateGetUrl) {
     `他の事件のヒント・資料・登場人物は、ここには含まれていません。このミッションの間は、この brief だけを見て答えてください。前の事件の知識は使わないでください。`,
     ``,
   );
+  lines.push(...welcomeLines(c), ``);
   lines.push(PARTNER_GUIDE, ``);
   const base = String(celebrateGetUrl ?? "").split("/ai/celebrate-get")[0];
   if (base) {
