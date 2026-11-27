@@ -257,7 +257,7 @@ return [
 ];
 }
 s.resolved = true;
-return [M4.trueEndText, "（犯人はヤス――それ、ポートピア連続殺人事件だよ？）"];
+return [M4.trueEndText];
 }
 return ["告発の相手が指定されていない。"];
 }
