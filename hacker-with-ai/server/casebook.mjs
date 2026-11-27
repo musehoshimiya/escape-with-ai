@@ -118,6 +118,9 @@ export function applyAction(c, action) {
       const next = MODULES[ORDER[idx + 1]];
       if (!c.states[next.id]) c.states[next.id] = next.createState();
       texts.push(`事件簿に新しい依頼「${next.title}」が追加された。左の事件簿から開ける。`);
+      texts.push(
+        `【相方への連絡】ミッション${m.no}「${m.title}」は解決した。次にプレイヤーから話しかけられたら、答える前にミッション${next.no}専用の brief（/ai/brief/${next.id}）を取得すること。前の事件の前提は破棄してよい。`,
+      );
     } else if (idx + 1 >= ORDER.length) {
       texts.push(`事件簿の全ての依頼が解決した。長い事件、おつかれさま。`);
     }
@@ -223,5 +226,18 @@ export function buildMissionBrief(c, missionId, recentEvents, celebrateGetUrl) {
       celebrate: missionId === "m4" && allCleared(c),
     }),
   );
+  // クリア済みミッションの brief の末尾には、次の brief を読ませる指示を置く。
+  // 相方が次にこの brief を開いた時点で、移行の指示が目に入るようにするため。
+  const idx = ORDER.indexOf(missionId);
+  if (m.isCleared(st) && idx + 1 < ORDER.length) {
+    const next = MODULES[ORDER[idx + 1]];
+    if (missionUnlocked(c, next.id)) {
+      lines.push(
+        ``,
+        `■ 次の行動（このミッションは解決済みです）`,
+        `次のミッション${next.no}「${next.title}」が開いています。プレイヤーが次に話しかけたら、まずミッション${next.no}専用の brief（/ai/brief/${next.id}）を取得してから答えてください。このミッションの前提のまま、次の事件に答えないでください。`,
+      );
+    }
+  }
   return lines.join("\n");
 }

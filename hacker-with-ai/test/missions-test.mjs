@@ -77,6 +77,7 @@ const m2Brief = buildMissionBrief(c, "m2", "", CEL_URL);
 check("解放後は m2 専用 brief が発行される", typeof m2Brief === "string" && m2Brief.includes("ミッション2「写真コンテストの鑑定」専用"));
 check("m2 専用 brief に m1 のヒントは混ざらない", m2Brief.includes("ファイルの鑑定方法") && !m2Brief.includes("バックアップの復号"));
 check("m2 解放後も m4 専用 brief は発行されない", buildMissionBrief(c, "m4", "", CEL_URL) === null);
+check("解決済み m1 の専用 brief 末尾に、次の brief を読む指示がある", buildMissionBrief(c, "m1", "", CEL_URL).includes("次の行動") && buildMissionBrief(c, "m1", "", CEL_URL).includes("/ai/brief/m2"));
 check("現在地バナーに解決済みのミッション1が明記される", brief(c).includes("は解決済みです"));
 check("brief にマジックナンバーの表がある", brief(c).includes("FF D8"));
 const genuineFile = s2.files.find((f) => f.genuine);
