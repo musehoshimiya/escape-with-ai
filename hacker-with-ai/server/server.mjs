@@ -8,12 +8,16 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import {
-  createMissionState,
+  createCaseState,
   guiView,
   applyAction,
   applyCelebrate,
   buildBrief,
-} from "./mission.mjs";
+  sceneKeyOf,
+  sceneLabelOf,
+  firstIntro,
+  currentWord,
+} from "./casebook.mjs";
 import { buildJoinPrompt, buildRejoinPrompt } from "./prompt.mjs";
 import { handleMcp } from "./mcp.mjs";
 
@@ -27,12 +31,14 @@ function newSession(name) {
   const s = {
     id,
     name,
-    mission: createMissionState(),
+    case: createCaseState(),
     events: [],
     seq: 0,
     createdAt: Date.now(),
   };
-  pushEvent(s, "game", `「${name}」さんが復旧チームに加わった。相方のAIを待っている。`);
+  pushEvent(s, "scene", sceneLabelOf(s.case));
+  pushEvent(s, "game", firstIntro());
+  pushEvent(s, "game", `「${name}」さんが探偵事務所に加わった。相方のAIを待っている。`);
   sessions.set(id, s);
   return s;
 }
@@ -50,7 +56,7 @@ function publicBase(req) {
 }
 
 function guiState(s) {
-  return { sessionId: s.id, name: s.name, ...guiView(s.mission), lastSeq: s.seq };
+  return { sessionId: s.id, name: s.name, ...guiView(s.case), lastSeq: s.seq };
 }
 
 function aiBrief(s, baseUrl) {
@@ -58,8 +64,8 @@ function aiBrief(s, baseUrl) {
     .slice(-10)
     .map((e) => `#${e.seq} [${e.kind}] ${e.text}`)
     .join("\n");
-  const celebrateGetUrl = `${baseUrl}/api/sessions/${s.id}/ai/celebrate-get?word=${s.mission.clearWord}&text=（お祝いの言葉をURLエンコードしたもの）`;
-  return buildBrief(s.mission, recent, celebrateGetUrl);
+  const celebrateGetUrl = `${baseUrl}/api/sessions/${s.id}/ai/celebrate-get?word=${currentWord(s.case)}&text=（お祝いの言葉をURLエンコードしたもの）`;
+  return buildBrief(s.case, recent, celebrateGetUrl);
 }
 
 const MIME = {
@@ -130,8 +136,16 @@ const server = createServer(async (req, res) => {
 
     if (sub === "/action" && req.method === "POST") {
       const body = await readJson(req);
-      const texts = applyAction(s.mission, body);
-      for (const t of texts) pushEvent(s, "game", t);
+      const before = sceneKeyOf(s.case);
+      const texts = applyAction(s.case, body);
+      const after = sceneKeyOf(s.case);
+      if (body?.spot === "select_mission" && after !== before) {
+        pushEvent(s, "scene", sceneLabelOf(s.case));
+        for (const t of texts) pushEvent(s, "game", t);
+      } else {
+        for (const t of texts) pushEvent(s, "game", t);
+        if (after !== before) pushEvent(s, "scene", sceneLabelOf(s.case));
+      }
       return sendJson(res, 200, guiState(s));
     }
 
@@ -150,7 +164,7 @@ const server = createServer(async (req, res) => {
 
     if (sub === "/ai/celebrate" && req.method === "POST") {
       const body = await readJson(req);
-      const r = applyCelebrate(s.mission, body.word, body.text);
+      const r = applyCelebrate(s.case, body.word, body.text);
       if (!r.ok) return sendJson(res, 400, { ok: false, reason: r.reason });
       pushEvent(s, "celebration", r.message);
       return sendJson(res, 200, { ok: true, seq: s.seq });
@@ -159,7 +173,7 @@ const server = createServer(async (req, res) => {
     // POST できない環境（web 閲覧のみのAI）向け：開くだけでお祝いが届く GET 版
     if (sub === "/ai/celebrate-get" && req.method === "GET") {
       const r = applyCelebrate(
-        s.mission,
+        s.case,
         url.searchParams.get("word") ?? "",
         url.searchParams.get("text") ?? ""
       );
@@ -188,7 +202,7 @@ const server = createServer(async (req, res) => {
       return true;
     },
     celebrate: async (word, text) => {
-      const r = applyCelebrate(s.mission, word, text);
+      const r = applyCelebrate(s.case, word, text);
       if (r.ok) pushEvent(s, "celebration", r.message);
       return r;
     },
