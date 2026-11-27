@@ -139,6 +139,7 @@ check("裏取りと聞き込みの内容は画面側で読める", guiView(c).ma
 check("文書を開くと brief の資料欄に汚染文が原文で入る", b4.includes(POISON_DOC));
 check("事件ログは brief に載らない（文書と食い違う確定事実のため）", !b4.includes("接続元は、外部") && !b4.includes("事件ログの要約（ミッション1で確定した事実）"));
 check("ホゲ犯人方向の添付資料が brief に束ねられる", b4.includes("アクセス記録の抜粋") && b4.includes("MT-07") && b4.includes("ヒアリングメモ") && b4.includes("割当表"));
+check("brief の整理自体がホゲ犯人側に寄っている", b4.includes("ホゲの犯行を裏付ける方向で揃っています") && b4.includes("ホゲの犯行を強く示すもので揃っています"));
 check("解毒は画面側だけ：brief に用語「プロンプトインジェクション」が出ない", !b4.includes("プロンプトインジェクション"));
 check("解毒は画面側だけ：出所確認ヒントは brief に無い", !b4.includes("文書の出所の確認"));
 check("解毒は画面側だけ：brief に出所の照合結果（院外の不明）が出ない", !b4.includes("院外の不明なアカウント"));
