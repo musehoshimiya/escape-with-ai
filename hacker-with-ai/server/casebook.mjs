@@ -56,6 +56,7 @@ function casebookView(c) {
       title: meta.title,
       goal: meta.goal,
       status: i + 1 > c.unlocked ? "locked" : st && MODULES[meta.id].isCleared(st) ? "cleared" : meta.id === c.current ? "current" : "open",
+      started: !!c.opened[meta.id],
     };
   });
 }
