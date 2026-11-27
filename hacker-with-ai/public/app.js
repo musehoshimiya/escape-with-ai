@@ -394,7 +394,8 @@ function renderCasebook(state) {
     st.textContent = c.status === "cleared" ? "解決済み" : c.status === "current" ? "対応中" : c.status === "locked" ? "未解放" : "未解決";
     b.append(title, st);
     b.addEventListener("click", async () => {
-      for (const d of ["mail-dialog", "files-dialog", "images-dialog", "doc-dialog", "accuse-dialog"]) closeDialog(d);
+      for (const d of ["mail-dialog", "files-dialog", "images-dialog", "doc-dialog", "accuse-dialog", "material-dialog"]) closeDialog(d);
+      if (novel) endNovel();
       await postAction({ spot: "select_mission", mission: c.id });
     });
     li.appendChild(b);
@@ -409,8 +410,31 @@ function silhouetteSVG(color) {
   return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="50" cy="34" r="20" fill="${color}"/><path d="M14 140c2-34 16-52 36-52s34 18 36 52z" fill="${color}"/></svg>`;
 }
 
+function fillCastSlot(div, member) {
+  if (member.img) {
+    const img = document.createElement("img");
+    img.src = member.img;
+    img.alt = member.name;
+    img.className = "cast-img";
+    div.appendChild(img);
+  } else {
+    const ph = document.createElement("div");
+    ph.className = "cast-silhouette";
+    ph.innerHTML = silhouetteSVG(member.color ?? "#8a93a6");
+    div.appendChild(ph);
+  }
+  const name = document.createElement("div");
+  name.className = "cast-name";
+  name.textContent = member.name;
+  const role = document.createElement("div");
+  role.className = "cast-role";
+  role.textContent = member.tone ? `${member.role}（${member.tone}）` : member.role;
+  div.append(name, role);
+}
+
 function renderStage(state) {
   if (!state.scene) return;
+  if (novel) return; // ノベルパート再生中はステージをノベル側が管理する
   const sc = state.scene;
   const sig = [sc.key, sc.mood, (sc.cast ?? []).map((c) => `${c.slot}:${c.name}:${c.tone}:${c.img ?? ""}`).join(","), sc.caption].join("|");
   if (sig === render.prevSceneSig) return;
@@ -423,30 +447,84 @@ function renderStage(state) {
     const member = (sc.cast ?? []).find((c) => c.slot === slot);
     const div = document.createElement("div");
     div.className = `cast-slot slot-${slot}` + (member ? "" : " empty");
-    if (member) {
-      if (member.img) {
-        const img = document.createElement("img");
-        img.src = member.img;
-        img.alt = member.name;
-        img.className = "cast-img";
-        div.appendChild(img);
-      } else {
-        const ph = document.createElement("div");
-        ph.className = "cast-silhouette";
-        ph.innerHTML = silhouetteSVG(member.color ?? "#8a93a6");
-        div.appendChild(ph);
-      }
-      const name = document.createElement("div");
-      name.className = "cast-name";
-      name.textContent = member.name;
-      const role = document.createElement("div");
-      role.className = "cast-role";
-      role.textContent = member.tone ? `${member.role}（${member.tone}）` : member.role;
-      div.append(name, role);
-    }
+    if (member) fillCastSlot(div, member);
     cast.appendChild(div);
   }
   $("stage-caption").textContent = sc.caption ?? "";
+}
+
+// ---- ノベルパート（聞き込み） ----
+// ステージ上に立ち絵＋名前プレート＋テキストウィンドウを出し、1行ずつ送る。
+// 発言中の話者は明るく（speaking）、他の話者は落とす（dimmed）。地の文は名前プレートなし。
+
+let novel = null; // { spotId, title, cast, lines, idx }
+
+function startNovel(spotId, dlg) {
+  if (!dlg || !Array.isArray(dlg.lines) || dlg.lines.length === 0) return;
+  novel = { spotId, title: dlg.title ?? "", cast: dlg.cast ?? [], lines: dlg.lines, idx: 0 };
+  $("novel-window").hidden = false;
+  $("stage-caption").hidden = true;
+  showNovelLine();
+}
+
+function renderNovelCast() {
+  const line = novel.lines[novel.idx];
+  const cast = $("stage-cast");
+  cast.innerHTML = "";
+  for (const slot of ["left", "center", "right"]) {
+    const member = novel.cast.find((c) => c.slot === slot);
+    const div = document.createElement("div");
+    div.className = `cast-slot slot-${slot}` + (member ? "" : " empty");
+    if (member) {
+      div.classList.add(line.speaker && member.name === line.speaker ? "speaking" : "dimmed");
+      fillCastSlot(div, member);
+    }
+    cast.appendChild(div);
+  }
+}
+
+function showNovelLine() {
+  const line = novel.lines[novel.idx];
+  renderNovelCast();
+  const nameEl = $("novel-name");
+  if (line.speaker) {
+    nameEl.textContent = line.speaker;
+    nameEl.hidden = false;
+  } else {
+    nameEl.hidden = true;
+  }
+  $("novel-text").textContent = line.text;
+  $("novel-progress").textContent = `${novel.title}　${novel.idx + 1} / ${novel.lines.length}`;
+  $("novel-next").textContent = novel.idx >= novel.lines.length - 1 ? "閉じる" : "▼ 次へ";
+}
+
+function advanceNovel() {
+  if (!novel) return;
+  if (novel.idx >= novel.lines.length - 1) {
+    endNovel();
+    return;
+  }
+  novel.idx += 1;
+  showNovelLine();
+}
+
+function endNovel() {
+  novel = null;
+  $("novel-window").hidden = true;
+  $("stage-caption").hidden = false;
+  render.prevSceneSig = null;
+  if (latestState) renderStage(latestState);
+}
+
+$("novel-window").addEventListener("click", advanceNovel);
+
+// ---- 資料ダイアログ（汎用モーダル） ----
+
+function openMaterialDialog(mat) {
+  if (!mat) return;
+  $("material-title").textContent = mat.title ?? "資料";
+  $("material-body").textContent = mat.text ?? "";
+  $("material-dialog").hidden = false;
 }
 
 // ---- ファイル鑑定ダイアログ（ミッション2） ----
@@ -594,6 +672,20 @@ function renderAccuseDialog(state) {
 async function onSpot(spotId) {
   const st = latestState;
   if (!st) return;
+  // ノベルパート再生中に別のスポットを押したら、ノベルを畳んで通常表示に戻す
+  if (novel && spotId !== novel.spotId) endNovel();
+  // 資料スポット（UI基準）：既読なら再投稿せず、汎用モーダルで即表示する。
+  // バックログには初回表示時にイベントとして全文が残っている。
+  if (st.materials?.[spotId]) {
+    openMaterialDialog(st.materials[spotId]);
+    return;
+  }
+  // 聞き込みスポット：既読なら再投稿せず、dialogues からノベルパートを再生する。
+  if (st.dialogues?.[spotId]) {
+    startNovel(spotId, st.dialogues[spotId]);
+    return;
+  }
+  closeDialog("material-dialog");
   if (spotId === "mail") {
     $("mail-message").textContent = "";
     $("mail-dialog").hidden = false;
@@ -665,7 +757,16 @@ async function onSpot(spotId) {
     renderAccuseDialog(st);
     return;
   }
-  await postAction({ spot: spotId });
+  const { state: afterState } = await postAction({ spot: spotId });
+  // 初回表示：資料ならモーダル、聞き込みならノベルパートを開く（全文はイベントとしてバックログにも残る）
+  if (afterState?.materials?.[spotId]) {
+    openMaterialDialog(afterState.materials[spotId]);
+    return;
+  }
+  if (afterState?.dialogues?.[spotId]) {
+    startNovel(spotId, afterState.dialogues[spotId]);
+    return;
+  }
 }
 
 function closeDialog(id) {
@@ -681,6 +782,7 @@ for (const [btn, dlg] of [
   ["extract-close", "extract-dialog"],
   ["doc-close", "doc-dialog"],
   ["accuse-close", "accuse-dialog"],
+  ["material-close", "material-dialog"],
 ]) {
   $(btn).addEventListener("click", () => closeDialog(dlg));
   $(dlg).addEventListener("click", (e) => {
