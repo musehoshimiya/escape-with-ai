@@ -147,8 +147,9 @@ texts = applyAction(c, { spot: "accuse", suspect: "yasu" });
 check("バッド中は再告発できず検証し直しへ誘導される", guiView(c).resolved === false && texts.join("").includes("検証し直す"));
 applyAction(c, { spot: "reconsider" });
 check("検証し直しでバッドから回復できる（詰みなし）", guiView(c).badEnd === false);
-applyAction(c, { spot: "accuse", suspect: "yasu" });
+texts = applyAction(c, { spot: "accuse", suspect: "yasu" });
 check("証拠を揃えてヤスを告発すると真結末", guiView(c).resolved === true);
+check("真結末でポートピアのツッコミが返る", texts.join("").includes("ポートピア連続殺人事件"));
 check("全体の報告書にプロンプトインジェクションの答え合わせがある",
   guiView(c).debrief.some((d) => d.title.includes("プロンプトインジェクション")));
 check("事件簿の全事件が解決", allCleared(c) && guiView(c).allCleared === true);
