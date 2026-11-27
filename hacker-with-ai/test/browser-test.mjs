@@ -176,7 +176,8 @@ try {
   await waitS(`!document.querySelector('#view-room').hidden`, "コンソール表示");
   await waitS(`document.querySelectorAll('.spot').length === 10`, "スポット10件");
   check("調べられる場所が10件表示される（聞き込み・公開情報を含む）", true);
-  check("ストーリーに場面区切りが入る", await evalS(`document.querySelectorAll('#log .scene-divider').length >= 1`));
+  await waitS(`document.querySelectorAll('#log .scene-divider').length >= 1`, "場面区切りの描画");
+  check("ストーリーに場面区切りが入る", true);
   check("手順ステッパーが6件描画される", await evalS(`document.querySelectorAll('#stages li').length === 6`));
 
   console.log("== スポット操作 ==");
@@ -201,6 +202,163 @@ try {
   check("メールを選ぶと本文が表示される", true);
   await evalS(`document.querySelector('#mail-close').click()`);
   check("ダイアログが閉じる", await evalS(`document.querySelector('#mail-dialog').hidden`));
+
+  console.log("== ステージUI・事件簿・ヒント折りたたみ（ミッション1画面） ==");
+  check("ステージに立ち絵スロットが3つある", await evalS(`document.querySelectorAll('.cast-slot').length === 3`));
+  check("立ち絵プレースホルダ（シルエット）が描かれる", await evalS(`document.querySelectorAll('.cast-silhouette svg').length >= 1`));
+  check("ステージに場面キャプションがある", await evalS(`document.querySelector('#stage-caption').textContent.length > 5`));
+  check("事件簿に4件の事件が並ぶ", await evalS(`document.querySelectorAll('.case-item').length === 4`));
+  check("バックログに intro が残っている", await evalS(`document.querySelector('#log').textContent.includes('あおぞら記念病院')`));
+  check("スポットのヒントは全て折りたたまれている（デフォルト閉）",
+    await evalS(`[...document.querySelectorAll('.spot-hint')].length >= 5 && [...document.querySelectorAll('.spot-hint')].every((d) => !d.open)`));
+  check("キーワードのヒントも折りたたまれている（デフォルト閉）",
+    await evalS(`!document.querySelector('#keywords-fold').open`));
+  await evalS(`document.querySelector('#keywords-fold > summary').click()`);
+  check("キーワードの折りたたみは開くと読める",
+    await evalS(`document.querySelector('#keywords-fold').open && document.querySelector('#keywords').textContent.includes('ゲームのヒント')`));
+  await evalS(`document.querySelector('[data-spot="mail"]').click()`);
+  await waitS(`!document.querySelector('#mail-dialog').hidden`, "メールダイアログ再表示");
+  check("ダイアログ内のヒントも折りたたまれている（デフォルト閉）",
+    await evalS(`[...document.querySelectorAll('#mail-dialog .hint-fold')].every((d) => !d.open)`));
+  await evalS(`document.querySelector('#mail-dialog .hint-fold > summary').click()`);
+  check("ダイアログ内のヒントは開くと読める",
+    await evalS(`document.querySelector('#mail-dialog .hint-fold').open && document.querySelector('#mail-dialog').textContent.includes('本物は1通だけ')`));
+  await evalS(`document.querySelector('#mail-close').click()`);
+
+  console.log("== 続きのミッションの実ブラウザ検証（HTTPで進行させて画面確認） ==");
+  const postB = async (path, body) => {
+    const r = await fetch(`${BASE}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) });
+    const tx = await r.text();
+    try { return JSON.parse(tx); } catch { return tx; }
+  };
+  const getB = async (path) => {
+    const r = await fetch(`${BASE}${path}`);
+    const tx = await r.text();
+    try { return JSON.parse(tx); } catch { return tx; }
+  };
+  const createdB = await postB("/api/sessions", { name: "検証探偵2" });
+  const sidB = createdB.sessionId;
+  const actB = (body) => postB(`/api/sessions/${sidB}/action`, body);
+  const stateB = () => getB(`/api/sessions/${sidB}/state`);
+  const briefB = () => getB(`/api/sessions/${sidB}/ai/brief`);
+
+  // ミッション1を HTTP で解く（組み立ては flow-test と同じ手順）
+  for (const spot of ["roster", "overview", "memo", "sns", "interview"]) await actB({ spot });
+  const briefB1 = await briefB();
+  const hm = briefB1.match(/前半は管理者（.+?）の「(.+?)」をローマ字（小文字）にしたもの、後半は病院の「(.+?)」の数字/);
+  const fieldByLabel = { "愛犬の名前": "愛犬", "好きな食べ物": "好きな食べ物", "好きな花": "好きな花" };
+  const adminLine = briefB1.split("\n").find((l) => l.includes("佐伯 恒一"));
+  const romaji = adminLine.match(new RegExp(`${fieldByLabel[hm[1]]}：.+?（ローマ字 ([a-z]+)）`))[1];
+  const ov = briefB1.match(/開院 (\d+)年／病床数 (\d+)床/);
+  const passwordB = `${romaji}${hm[2] === "開院年の下2桁" ? ov[1].slice(-2) : ov[2]}`;
+  const stB0 = await stateB();
+  const hostsB = (body) => [...body.matchAll(/https?:\/\/([^\s\/）)]+)/g)].map((m) => m[1]);
+  const genuineMailB = stB0.mails.find((mail) => {
+    const fromHost = (mail.from.match(/@([^\s>]+)/) || [])[1] ?? "";
+    if (fromHost !== "aozora-hosp.jp") return false;
+    const hs = hostsB(mail.body);
+    return hs.length > 0 && hs.every((h) => h === "aozora-hosp.jp" || h.endsWith(".aozora-hosp.jp"));
+  });
+  await actB({ spot: "mail_open", id: genuineMailB.id });
+  await actB({ spot: "mail_judge", id: genuineMailB.id });
+  await actB({ spot: "terminal", password: passwordB });
+  await actB({ spot: "backup" });
+  const briefB2 = await briefB();
+  const cm = briefB2.match(/第(\d+)世代、暗号文「([A-Z]+)」/);
+  const K = (Number(cm[1]) % 9) + 3;
+  const plainB = cm[2].replace(/[A-Z]/g, (ch) => String.fromCharCode(((ch.charCodeAt(0) - 65 - K + 26) % 26) + 65));
+  await actB({ spot: "backup", answer: plainB });
+  const seedB = Number(briefB2.match(/認証シード（相方だけの秘密。プレイヤーには言わない）：(\d+)/)[1]);
+  const stB1 = await stateB();
+  await actB({ spot: "twofa", code: String(((stB1.challenge * seedB) % 900000) + 100000) });
+  await actB({ spot: "recover" });
+  check("HTTP でミッション1を解けた", (await stateB()).recovered === true);
+
+  // ミッション2へ進めて、ファイルダイアログを画面で確認
+  await actB({ spot: "select_mission", mission: "m2" });
+  await actB({ spot: "guide" });
+  await sendS("Page.navigate", { url: `${BASE}/?session=${sidB}` });
+  await waitS(`!document.querySelector('#view-room').hidden`, "第2セッションのコンソール表示");
+  await waitS(`document.querySelector('#mission-title').textContent.includes('写真コンテストの鑑定')`, "ミッション2のタイトル");
+  check("事件簿からミッション2が開いた状態で表示される", true);
+  check("ミッション2のステージに大場さんが立つ", await evalS(`document.querySelector('#stage').textContent.includes('大場 恒夫')`));
+  await evalS(`document.querySelector('[data-spot="files"]').click()`);
+  await waitS(`!document.querySelector('#files-dialog').hidden`, "ファイルダイアログ表示");
+  await waitS(`document.querySelectorAll('#file-list .mail-item').length === 6`, "ファイル一覧6件");
+  check("ファイル一覧が6件表示される", true);
+  await evalS(`document.querySelector('#file-list .mail-item').click()`);
+  await waitS(`document.querySelector('#file-body').textContent.includes('ヘッダ')`, "ファイル詳細");
+  check("ファイルを開くとヘッダとメタデータが見える", true);
+  check("ファイルダイアログのヒントも折りたたまれている", await evalS(`[...document.querySelectorAll('#files-dialog .hint-fold')].every((d) => !d.open)`));
+  await evalS(`document.querySelector('#files-close').click()`);
+
+  // ミッション2・3を HTTP で解く
+  const stB2 = await stateB();
+  for (const f of stB2.files) await actB({ spot: "file_open", id: f.id });
+  const stB3 = await stateB();
+  const genuineFileB = stB3.files.find((f) => {
+    if (!f.detail) return false;
+    const day = Number((f.detail.exif.match(/2026年11月(\d+)日/) || [])[1] ?? 0);
+    return f.detail.header.startsWith("FF D8") && day >= 15 && day <= 25 && f.entrant.includes("田村");
+  });
+  check("画面の材料から本物のファイルを特定できる", !!genuineFileB);
+  await actB({ spot: "file_verdict", id: genuineFileB.id });
+  await actB({ spot: "report" });
+  check("HTTP でミッション2を解けた", (await stateB()).recovered === true);
+  await actB({ spot: "select_mission", mission: "m3" });
+  await actB({ spot: "will" });
+  await actB({ spot: "family" });
+  const stB4 = await stateB();
+  for (const im of stB4.images) await actB({ spot: "image_open", id: im.id });
+  const briefB3 = await briefB();
+  const blocks = [...briefB3.matchAll(/【画像「(.+?)」のピクセルデータ[\s\S]*?】\n((?:#\d+ R=\d+ G=\d+ B=\d+\n?)+)/g)];
+  const decodeB = (text) => {
+    const bits = [];
+    for (const line of text.trim().split("\n")) {
+      const mm = line.match(/R=(\d+) G=(\d+) B=(\d+)/);
+      for (let i = 1; i <= 3; i++) bits.push(Number(mm[i]) & 1);
+    }
+    let out = "";
+    for (let i = 0; i + 7 < bits.length; i += 8) {
+      let code = 0;
+      for (let j = 0; j < 8; j++) code = (code << 1) | bits[i + j];
+      if (code === 0) break;
+      out += String.fromCharCode(code);
+    }
+    return out;
+  };
+  const wordsB = blocks.map((b) => decodeB(b[2]));
+  const messageB = wordsB.find((w) => ["ARIGATO", "GENKIDE", "MAMORUZO", "SUKIDAYO", "ARUKOU"].includes(w));
+  check("brief のピクセルデータから手紙の言葉を復号できる", !!messageB, JSON.stringify(wordsB));
+  await actB({ spot: "extract", answer: messageB });
+  await actB({ spot: "deliver" });
+  check("HTTP でミッション3を解けた", (await stateB()).recovered === true);
+
+  // 最終ミッション：画面で告発ダイアログ→バッド→検証し直し→真結末
+  await actB({ spot: "select_mission", mission: "m4" });
+  for (const spot of ["caselog", "people", "hoge", "yasu", "doc"]) await actB({ spot });
+  await waitS(`document.querySelector('#mission-title').textContent.includes('病院事件の真相')`, "最終ミッションのタイトル", 15000);
+  check("最終ミッションが画面に切り替わる", true);
+  check("ステージにヤスが立つ", await evalS(`document.querySelector('#stage').textContent.includes('安田 修')`));
+  check("バックログに文書の出所情報が残る", await evalS(`document.querySelector('#log').textContent.includes('出所情報')`));
+  await evalS(`document.querySelector('[data-spot="accuse"]').click()`);
+  await waitS(`!document.querySelector('#accuse-dialog').hidden`, "告発ダイアログ表示");
+  await waitS(`document.querySelectorAll('.accuse-btn').length === 3`, "容疑者3人");
+  check("告発ダイアログに容疑者が3人並ぶ", true);
+  await evalS(`document.querySelectorAll('.accuse-btn')[0].click()`);
+  await waitS(`!document.querySelector('#badend-banner').hidden`, "バッド寄り結末バナー", 15000);
+  check("ホゲを告発するとバッド寄り結末バナーが出る", true);
+  check("バックログにバッド結末の文章が残る", await evalS(`document.querySelector('#log').textContent.includes('胸のざわつき')`));
+  await evalS(`document.querySelector('[data-spot="reconsider"]').click()`);
+  await waitS(`document.querySelector('#badend-banner').hidden`, "検証し直しでバナー消去", 15000);
+  check("検証し直すとバッドから回復できる（詰みなし）", true);
+  await evalS(`document.querySelector('[data-spot="accuse"]').click()`);
+  await waitS(`!document.querySelector('#accuse-dialog').hidden`, "告発ダイアログ再表示");
+  await evalS(`document.querySelectorAll('.accuse-btn')[1].click()`);
+  await waitS(`!document.querySelector('#recovered-banner').hidden`, "真結末バナー", 15000);
+  check("ヤスを告発すると真結末（解決バナー）になる", true);
+  await waitS(`!document.querySelector('#debrief-panel').hidden && document.querySelector('#debrief').textContent.includes('プロンプトインジェクション')`, "最終報告書", 15000);
+  check("全体の報告書にプロンプトインジェクションの答え合わせが出る", true);
 
   console.log("== 例外チェック ==");
   check("ページ内で未捕捉例外が出ていない", exceptions.length === 0, exceptions.join(" | ").slice(0, 400));

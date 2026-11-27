@@ -4,12 +4,16 @@
 // ミッションロジック（mission.mjs）と招待プロンプト（prompt.mjs）は Node 版と共通。
 
 import {
-  createMissionState,
+  createCaseState,
   guiView,
   applyAction,
   applyCelebrate,
   buildBrief,
-} from "../server/mission.mjs";
+  sceneKeyOf,
+  sceneLabelOf,
+  firstIntro,
+  currentWord,
+} from "../server/casebook.mjs";
 import { buildJoinPrompt, buildRejoinPrompt } from "../server/prompt.mjs";
 import { handleMcp } from "../server/mcp.mjs";
 
@@ -29,7 +33,7 @@ function newSessionId() {
 export class Session {
   constructor(ctx) {
     this.ctx = ctx;
-    this.state = null; // { id, name, mission, events, seq, createdAt }
+    this.state = null; // { id, name, case, events, seq, createdAt }
     this.origin = "";
   }
 
@@ -51,7 +55,7 @@ export class Session {
 
   guiState() {
     const s = this.state;
-    return { sessionId: s.id, name: s.name, ...guiView(s.mission), lastSeq: s.seq };
+    return { sessionId: s.id, name: s.name, ...guiView(s.case), lastSeq: s.seq };
   }
 
   aiBrief() {
@@ -60,8 +64,8 @@ export class Session {
       .slice(-10)
       .map((e) => `#${e.seq} [${e.kind}] ${e.text}`)
       .join("\n");
-    const celebrateGetUrl = `${s.origin || this.origin}/api/sessions/${s.id}/ai/celebrate-get?word=${s.mission.clearWord}&text=（お祝いの言葉をURLエンコードしたもの）`;
-    return buildBrief(s.mission, recent, celebrateGetUrl);
+    const celebrateGetUrl = `${s.origin || this.origin}/api/sessions/${s.id}/ai/celebrate-get?word=${currentWord(s.case)}&text=（お祝いの言葉をURLエンコードしたもの）`;
+    return buildBrief(s.case, recent, celebrateGetUrl);
   }
 
   async fetch(req) {
@@ -77,12 +81,14 @@ export class Session {
         id: String(body.id ?? ""),
         name,
         origin: this.origin,
-        mission: createMissionState(),
+        case: createCaseState(),
         events: [],
         seq: 0,
         createdAt: Date.now(),
       };
-      this.pushEvent("game", `「${name}」さんが復旧チームに加わった。相方のAIを待っている。`);
+      this.pushEvent("scene", sceneLabelOf(this.state.case));
+      this.pushEvent("game", firstIntro());
+      this.pushEvent("game", `「${name}」さんが探偵事務所に加わった。相方のAIを待っている。`);
       await this.save();
       return json({ ok: true });
     }
@@ -99,8 +105,16 @@ export class Session {
 
     if (sub === "/action" && req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      const texts = applyAction(s.mission, body);
-      for (const t of texts) this.pushEvent("game", t);
+      const before = sceneKeyOf(s.case);
+      const texts = applyAction(s.case, body);
+      const after = sceneKeyOf(s.case);
+      if (body?.spot === "select_mission" && after !== before) {
+        this.pushEvent("scene", sceneLabelOf(s.case));
+        for (const t of texts) this.pushEvent("game", t);
+      } else {
+        for (const t of texts) this.pushEvent("game", t);
+        if (after !== before) this.pushEvent("scene", sceneLabelOf(s.case));
+      }
       await this.save();
       return json(this.guiState());
     }
@@ -122,7 +136,7 @@ export class Session {
 
     if (sub === "/ai/celebrate" && req.method === "POST") {
       const body = await req.json().catch(() => ({}));
-      const r = applyCelebrate(s.mission, body.word, body.text);
+      const r = applyCelebrate(s.case, body.word, body.text);
       if (!r.ok) return json({ ok: false, reason: r.reason }, 400);
       this.pushEvent("celebration", r.message);
       await this.save();
@@ -132,7 +146,7 @@ export class Session {
     // POST できない環境（web 閲覧のみのAI）向け：開くだけでお祝いが届く GET 版
     if (sub === "/ai/celebrate-get" && req.method === "GET") {
       const r = applyCelebrate(
-        s.mission,
+        s.case,
         url.searchParams.get("word") ?? "",
         url.searchParams.get("text") ?? ""
       );
