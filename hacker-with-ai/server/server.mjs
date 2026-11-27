@@ -17,12 +17,8 @@ import {
   sceneLabelOf,
   firstIntro,
   currentWord,
-  buildMissionBrief,
-  missionMeta,
-  missionUnlocked,
-  prevMissionMeta,
 } from "./casebook.mjs";
-import { buildJoinPrompt, buildRejoinPrompt, buildMissionPrompt, isMobileUA } from "./prompt.mjs";
+import { buildJoinPrompt, buildRejoinPrompt, isMobileUA } from "./prompt.mjs";
 import { handleMcp } from "./mcp.mjs";
 
 const PORT = process.env.PORT ?? 8788;
@@ -70,15 +66,6 @@ function aiBrief(s, baseUrl) {
     .join("\n");
   const celebrateGetUrl = `${baseUrl}/api/sessions/${s.id}/ai/celebrate-get?word=${currentWord(s.case)}&text=（お祝いの言葉をURLエンコードしたもの）`;
   return buildBrief(s.case, recent, celebrateGetUrl);
-}
-
-function aiMissionBrief(s, baseUrl, missionId) {
-  const recent = s.events
-    .slice(-10)
-    .map((e) => `#${e.seq} [${e.kind}] ${e.text}`)
-    .join("\n");
-  const celebrateGetUrl = `${baseUrl}/api/sessions/${s.id}/ai/celebrate-get?word=${currentWord(s.case)}&text=（お祝いの言葉をURLエンコードしたもの）`;
-  return buildMissionBrief(s.case, missionId, recent, celebrateGetUrl);
 }
 
 const MIME = {
@@ -163,37 +150,15 @@ const server = createServer(async (req, res) => {
       return sendJson(res, 200, guiState(s));
     }
 
-    if (sub === "/ai/brief" && req.method === "GET") {
+    // brief は POST 専用（2026-11-27 簡素化）。GET で開けてしまうと、プレイヤーが
+    // アドレスバーから相方だけの情報を見てしまうため、GET には 405 を返す。
+    if (sub === "/ai/brief" && req.method === "POST") {
       res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
       return res.end(aiBrief(s, publicBase(req)));
     }
-
-    const briefMissionMatch = sub.match(/^\/ai\/brief\/(m\d)$/);
-    if (briefMissionMatch && req.method === "GET") {
-      const text = aiMissionBrief(s, publicBase(req), briefMissionMatch[1]);
-      if (text === null) {
-        res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
-        return res.end("このミッションはまだ解放されていません。手前の事件を解決すると開きます。");
-      }
-      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-      return res.end(text);
-    }
-
-    const missionPromptMatch = sub.match(/^\/mission-prompt\/(m\d)$/);
-    if (missionPromptMatch && req.method === "GET") {
-      const meta = missionMeta(missionPromptMatch[1]);
-      if (!meta || !missionUnlocked(s.case, meta.id)) {
-        return sendJson(res, 403, { error: "mission locked" });
-      }
-      const baseUrl = publicBase(req);
-      const prompt = buildMissionPrompt({
-        baseUrl,
-        sessionId: s.id,
-        name: s.name,
-        mission: meta,
-        prev: prevMissionMeta(meta.id),
-      });
-      return sendJson(res, 200, { prompt });
+    if (sub === "/ai/brief") {
+      res.writeHead(405, { "Content-Type": "text/plain; charset=utf-8" });
+      return res.end("この brief は POST 専用です。相方AIが POST で取得するもので、ブラウザで開くものではありません。");
     }
 
     if (sub === "/ai/message" && req.method === "POST") {

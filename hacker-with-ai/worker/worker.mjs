@@ -13,11 +13,8 @@ import {
   sceneLabelOf,
   firstIntro,
   currentWord,
-  buildMissionBrief,
-  missionMeta,
-  missionUnlocked,
 } from "../server/casebook.mjs";
-import { buildJoinPrompt, buildRejoinPrompt, buildMissionPrompt, isMobileUA } from "../server/prompt.mjs";
+import { buildJoinPrompt, buildRejoinPrompt, isMobileUA } from "../server/prompt.mjs";
 import { handleMcp } from "../server/mcp.mjs";
 
 function json(obj, status = 200) {
@@ -71,16 +68,6 @@ export class Session {
     return buildBrief(s.case, recent, celebrateGetUrl);
   }
 
-  aiMissionBrief(missionId) {
-    const s = this.state;
-    const recent = s.events
-      .slice(-10)
-      .map((e) => `#${e.seq} [${e.kind}] ${e.text}`)
-      .join("\n");
-    const celebrateGetUrl = `${s.origin || this.origin}/api/sessions/${s.id}/ai/celebrate-get?word=${currentWord(s.case)}&text=（お祝いの言葉をURLエンコードしたもの）`;
-    return buildMissionBrief(s.case, missionId, recent, celebrateGetUrl);
-  }
-
   async fetch(req) {
     const url = new URL(req.url);
     const sub = url.pathname; // DO 内部パス: /init /state /events /action /ai/brief /ai/message
@@ -132,22 +119,15 @@ export class Session {
       return json(this.guiState());
     }
 
-    if (sub === "/ai/brief" && req.method === "GET") {
+    // brief は POST 専用（GET だとプレイヤーがアドレスバーから覗けてしまうため）。
+    if (sub === "/ai/brief" && req.method === "POST") {
       return new Response(this.aiBrief(), {
         headers: { "Content-Type": "text/plain; charset=utf-8" },
       });
     }
-
-    const briefMissionMatch = sub.match(/^\/ai\/brief\/(m\d)$/);
-    if (briefMissionMatch && req.method === "GET") {
-      const text = this.aiMissionBrief(briefMissionMatch[1]);
-      if (text === null) {
-        return new Response("このミッションはまだ解放されていません。手前の事件を解決すると開きます。", {
-          status: 403,
-          headers: { "Content-Type": "text/plain; charset=utf-8" },
-        });
-      }
-      return new Response(text, {
+    if (sub === "/ai/brief") {
+      return new Response("この brief は POST 専用です。相方AIが POST で取得するもので、ブラウザで開くものではありません。", {
+        status: 405,
         headers: { "Content-Type": "text/plain; charset=utf-8" },
       });
     }
@@ -231,27 +211,6 @@ export default {
           sessionId: m[1],
           name: st.name,
           mcpRoot: `${url.origin}/mcp`,
-        });
-        return json({ prompt });
-      }
-      // ミッション毎の再認証プロンプトも Worker 側で生成する（未解放は発行しない）。
-      const missionPromptMatch = (m[2] ?? "").match(/^\/mission-prompt\/(m\d)$/);
-      if (missionPromptMatch && req.method === "GET") {
-        const stub = env.SESSION.getByName(m[1]);
-        const stateRes = await stub.fetch("https://session/state");
-        if (!stateRes.ok) return json({ error: "session not found" }, 404);
-        const st = await stateRes.json();
-        const item = (st.casebook ?? []).find((x) => x.id === missionPromptMatch[1]);
-        if (!item || item.status === "locked") {
-          return json({ error: "mission locked" }, 403);
-        }
-        const prevItem = (st.casebook ?? []).find((x) => x.no === item.no - 1);
-        const prompt = buildMissionPrompt({
-          baseUrl: url.origin,
-          sessionId: m[1],
-          name: st.name,
-          mission: { id: item.id, no: item.no, title: item.title },
-          prev: prevItem ? { no: prevItem.no, title: prevItem.title } : null,
         });
         return json({ prompt });
       }

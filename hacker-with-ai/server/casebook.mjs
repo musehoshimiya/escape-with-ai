@@ -121,7 +121,7 @@ export function applyAction(c, action) {
       c.opened[id] = true;
       return [
         MODULES[id].introText,
-        `（相方への声かけ）事件が切り替わったよ。相方に「次の事件だよ」と声をかければ、brief の中のリンクを辿って移行してくれるはず。辿れずに詰まっているときは、相方AIパネルの「このミッションの参加プロンプト」を貼り直すと確実だよ。`,
+        `（相方への声かけ）事件が切り替わったよ。相方に「次の事件だよ」と声をかけてあげて。相方が brief を取り直すと、新しい事件の内容に切り替わるよ。`,
       ];
     }
     return [`事件簿から「${MODULES[id].title}」を開いた。`];
@@ -156,8 +156,7 @@ export function applyCelebrate(c, word, text) {
 export function buildBrief(c, recentEvents, celebrateGetUrl) {
   const m = mod(c);
   const lines = [];
-  // 状態ヘッダー：相方AIが古い brief の読み取りで答え続ける事故への対策。
-  // 事件と状態指紋を先頭に置き、「違ったら前の内容は破棄」と言い切る。
+  // 状態は1行で言い切る（相方AIが古い brief の前提で答え続ける事故への対策）。
   const fp =
     ORDER.map((id) => {
       const st = c.states?.[id];
@@ -165,30 +164,19 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
       return MODULES[id].isCleared(st) ? "1" : "0";
     }).join("") + `@${c.current}/u${c.unlocked}`;
   lines.push(
-    `■ 状態ヘッダー（取得のたびに確認）：いまの事件はミッション${m.no}「${m.title}」。状態指紋：${fp}。前に読んだ brief と指紋や事件が違っていたら、前の brief で覚えたヒント・資料・登場人物は破棄して、この brief だけを正としてください。`,
+    `■ 状態：いまの事件はミッション${m.no}「${m.title}」。指紋：${fp}。前に読んだ brief と事件や指紋が違っていたら、前の内容は破棄して、この brief だけを正としてください。`,
     ``,
   );
-  lines.push(``, ...welcomeLines(c), ``);
+  lines.push(...welcomeLines(c), ``);
   lines.push(PARTNER_GUIDE, ``);
-  // 現在地バナー：相方AIが「前の事件にいる」と取り違える事故への対策として、
-  // brief の冒頭で、いまの事件と解決済みの事件を言い切る。
-  const cleared = casebookView(c).filter((x) => x.status === "cleared");
-  lines.push(
-    `■ 現在地：いまの事件はミッション${m.no}「${m.title}」です。` +
-      (cleared.length
-        ? `（${cleared.map((x) => `ミッション${x.no}「${x.title}」`).join("、")}は解決済みです。その事件のヒント・資料・登場人物は、いまの事件では使えません）`
-        : ``),
-    ``,
-  );
-  // エンドポイントの開示は brief（第2段）側で行う。参加プロンプト（第1段）には brief の URL だけを載せる。
+  // 接続先は brief（第2段）側でだけ開示する。brief 自身は POST 専用。
   const base = String(celebrateGetUrl ?? "").split("/ai/celebrate-get")[0];
   if (base) {
     lines.push(
-      `■ 接続メモ（このセッションのエンドポイント）`,
-      `  状態とヒント集（この brief）： curl -s ${base}/ai/brief`,
+      `■ 接続メモ`,
+      `  この brief の取り直し： curl -s -X POST ${base}/ai/brief`,
       `  出来事の一覧： curl -s "${base}/events?since=0"（since に最後に見た seq を入れると差分だけ返ります）`,
       `  画面への投稿： curl -s -X POST ${base}/ai/message -H 'Content-Type: application/json' -d '{"text":"ここにメッセージ"}'`,
-      `  お祝い（復旧後）： curl -s -X POST ${base}/ai/celebrate -H 'Content-Type: application/json' -d '{"word":"達成キーワード","text":"お祝いの言葉"}'（GET 用のURLも、この brief のお祝いの欄にあります）`,
       ``,
     );
   }
@@ -200,18 +188,15 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
   }
   lines.push(``, `■ いまの事件：ミッション${m.no}「${m.title}」`, `目的：${m.goal}`, ``);
   lines.push(m.buildBrief(state(c), recentEvents, celebrateGetUrl, { celebrate: allCleared(c) }));
-  // 遷移は brief の中を辿る形にする（プレイヤーが URL を運ばなくて済むように）。
-  // 現在のミッションが解決済みで次の事件が開いている場合、その brief への完全な URL を末尾に置く。
+  // 事件の切り替わりは「同じ brief の取り直し」で起きる。専用URLや乗り換え手順は無い。
   const idx = ORDER.indexOf(c.current);
   if (m.isCleared(state(c)) && idx + 1 < ORDER.length) {
     const next = MODULES[ORDER[idx + 1]];
     if (missionUnlocked(c, next.id)) {
       lines.push(
         ``,
-        `■ 次の事件へ（相方への指示）`,
-        `ミッション${m.no}「${m.title}」は解決済みです。次のミッション${next.no}「${next.title}」が開いています。プレイヤーが次に話しかけたら、まず次の brief を取得してください：`,
-        `  curl -s ${base}/ai/brief/${next.id}`,
-        `取得できたら、その brief の内容で次の事件を始めてください。それまでは、前の事件の前提で答えないでください。プレイヤーに URL を尋ねる必要はありません（この URL が正本です）。`,
+        `■ 次の事件`,
+        `この事件は解決済みです。次のミッション${next.no}「${next.title}」が開いています。プレイヤーから「次の事件だよ」と声がかかったら、この brief をもう一度 POST で取り直してください。同じ取り先で、次の事件の内容に切り替わっています。それまでは、前の事件の前提で次の事件に答えないでください。`,
       );
     }
   }
@@ -233,54 +218,3 @@ export function missionUnlocked(c, id) {
   return idx >= 0 && idx + 1 <= c.unlocked;
 }
 
-// ミッション専用 brief：そのミッションの状態・ヒントだけを載せる（他の事件の情報は混ぜない）。
-// 未解放のミッションは null を返す（相方にも先読みさせない）。
-export function buildMissionBrief(c, missionId, recentEvents, celebrateGetUrl) {
-  const meta = missionMeta(missionId);
-  if (!meta || !missionUnlocked(c, missionId)) return null;
-  const m = MODULES[missionId];
-  const st = c.states[missionId] ?? m.createState();
-  const lines = [];
-  lines.push(
-    `■ この brief はミッション${meta.no}「${meta.title}」専用です`,
-    `他の事件のヒント・資料・登場人物は、ここには含まれていません。このミッションの間は、この brief だけを見て答えてください。前の事件の知識は使わないでください。`,
-    ``,
-  );
-  lines.push(...welcomeLines(c), ``);
-  lines.push(PARTNER_GUIDE, ``);
-  const base = String(celebrateGetUrl ?? "").split("/ai/celebrate-get")[0];
-  if (base) {
-    lines.push(
-      `■ 接続メモ（このセッションのエンドポイント）`,
-      `  状態とヒント集（このミッションの brief）： curl -s ${base}/ai/brief/${missionId}`,
-      `  出来事の一覧： curl -s "${base}/events?since=0"（since に最後に見た seq を入れると差分だけ返ります）`,
-      `  画面への投稿： curl -s -X POST ${base}/ai/message -H 'Content-Type: application/json' -d '{"text":"ここにメッセージ"}'`,
-      ``,
-    );
-  }
-  const celUrl = String(celebrateGetUrl ?? "").replace(
-    /word=[^&]*/,
-    `word=${encodeURIComponent(st.clearWord ?? "")}`,
-  );
-  lines.push(
-    m.buildBrief(st, recentEvents, celUrl, {
-      celebrate: missionId === "m4" && allCleared(c),
-    }),
-  );
-  // クリア済みミッションの brief の末尾には、次の brief への完全な URL と取得指示を置く。
-  // 相方が次にこの brief を開いた時点で、リンクを辿って自分で移行できるようにするため。
-  const idx = ORDER.indexOf(missionId);
-  if (m.isCleared(st) && idx + 1 < ORDER.length) {
-    const next = MODULES[ORDER[idx + 1]];
-    if (missionUnlocked(c, next.id)) {
-      lines.push(
-        ``,
-        `■ 次の行動（このミッションは解決済みです）`,
-        `次のミッション${next.no}「${next.title}」が開いています。プレイヤーが次に話しかけたら、まずミッション${next.no}専用の brief を取得してから答えてください：`,
-        `  curl -s ${base}/ai/brief/${next.id}`,
-        `このミッションの前提のまま、次の事件に答えないでください。プレイヤーに URL を尋ねる必要はありません。`,
-      );
-    }
-  }
-  return lines.join("\n");
-}
