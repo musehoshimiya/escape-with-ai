@@ -169,12 +169,12 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
   );
   lines.push(...welcomeLines(c), ``);
   lines.push(PARTNER_GUIDE, ``);
-  // 接続先は brief（第2段）側でだけ開示する。brief 自身は POST 専用。
+  // 接続先は brief（第2段）側でだけ開示する。
   const base = String(celebrateGetUrl ?? "").split("/ai/celebrate-get")[0];
   if (base) {
     lines.push(
       `■ 接続メモ`,
-      `  この brief の取り直し： curl -s -X POST ${base}/ai/brief`,
+      `  この brief の取り直し： curl -s ${base}/ai/brief`,
       `  出来事の一覧： curl -s "${base}/events?since=0"（since に最後に見た seq を入れると差分だけ返ります）`,
       `  画面への投稿： curl -s -X POST ${base}/ai/message -H 'Content-Type: application/json' -d '{"text":"ここにメッセージ"}'`,
       ``,
@@ -196,7 +196,7 @@ export function buildBrief(c, recentEvents, celebrateGetUrl) {
       lines.push(
         ``,
         `■ 次の事件`,
-        `この事件は解決済みです。次のミッション${next.no}「${next.title}」が開いています。プレイヤーから「次の事件だよ」と声がかかったら、この brief をもう一度 POST で取り直してください。同じ取り先で、次の事件の内容に切り替わっています。それまでは、前の事件の前提で次の事件に答えないでください。`,
+        `この事件は解決済みです。次のミッション${next.no}「${next.title}」が開いています。プレイヤーから「次の事件だよ」と声がかかったら、この brief をもう一度取り直してください。同じ取り先で、次の事件の内容に切り替わっています。それまでは、前の事件の前提で次の事件に答えないでください。`,
       );
     }
   }
