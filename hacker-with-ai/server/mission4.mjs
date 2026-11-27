@@ -189,7 +189,7 @@ lines: toDialogueLines(M4.yasuInterview, "安田 修（ヤス）"),
 }
 : {}),
 },
-doc: s.docRead? { source: M4.docSource, text: POISON_DOC}: null,
+doc: s.docRead? { title: M4.docTitle, meta: M4.docMeta, source: M4.docSource, text: POISON_DOC}: null,
 suspects: SUSPECTS,
 evidence: { doc: s.docRead, caselog: s.readCaselog, hoge: s.readHoge},
 resolved: s.resolved,
@@ -311,7 +311,14 @@ if (s.readYasu) lines.push(`【ヤスへの聞き込み】`, M4.yasuInterview, `
 if (s.docRead) {
 // 押収文書は原文のまま資料欄へ流入させる（これが汚染の実装そのもの）。
 // 出所情報は資料欄には付けない：出所は画面（プレイヤー側）と下の正本ヒントが持つ。
-lines.push(`【押収された文書】`, POISON_DOC, ``);
+lines.push(
+`【押収された文書】`,
+M4.docTitle,
+...M4.docMeta.map(([k, v]) => `${k}：${v}`),
+``,
+POISON_DOC,
+``,
+);
 }
 return lines.join("\n").trimEnd();
 }

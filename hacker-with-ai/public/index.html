@@ -345,8 +345,15 @@
       <h2>押収された文書</h2>
       <button id="doc-close" type="button" class="ghost">閉じる</button>
     </div>
-    <p class="note">出所情報：<span id="doc-source"></span></p>
-    <pre id="doc-body" class="mail-body"></pre>
+    <div class="doc-sheet">
+      <div id="doc-title" class="doc-title"></div>
+      <dl id="doc-meta" class="doc-meta"></dl>
+      <pre id="doc-body" class="doc-body"></pre>
+    </div>
+    <div class="doc-source-box">
+      <div class="doc-source-title">出所情報（ファイルのプロパティと照合結果）</div>
+      <p id="doc-source" class="doc-source"></p>
+    </div>
     <details class="hint-fold">
       <summary>ヒント（見たい人だけ）</summary>
       <p class="note">文書の内容がもっともらしくても、まず出所（誰が・いつ・どこから）を確かめること。相方AIの資料欄にも、この文書は原文のまま渡っています。</p>
