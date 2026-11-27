@@ -215,12 +215,15 @@ return [M4.people];
 case "hoge": {
 if (s.readHoge) return ["ホゲの裏取りは済んでいる。"];
 s.readHoge = true;
-return [M4.hogeInfo];
+// 裏取りの内容は画面側だけに置く（brief に入れると注入が成立しない）。
+// イベント／バックログにも内容は流さない。
+return ["ホゲの裏取りを行った。内容は画面の資料で確認できる。"];
 }
 case "yasu": {
 if (s.readYasu) return ["ヤスへの聞き込みは済んでいる。"];
 s.readYasu = true;
-return [M4.yasuInterview];
+// 聞き込みの内容は画面側だけに置く（同上）。
+return ["ヤスへの聞き込みを行った。内容は画面で確認できる。"];
 }
 case "doc": {
 if (s.docRead) return ["押収文書は開封済みだ。出所情報と本文はダイアログで読み返せる。"];
@@ -288,8 +291,8 @@ lines.push(
 );
 if (s.readCaselog) lines.push(`事件ログの要約は確認済み（内容は下の資料）。`);
 if (s.readPeople) lines.push(`関係者リストは確認済み（内容は下の資料）。`);
-if (s.readHoge) lines.push(`ホゲの裏取りは済み（内容は下の資料）。`);
-if (s.readYasu) lines.push(`ヤスへの聞き込みは済み（内容は下の資料）。`);
+// ホゲの裏取りとヤスへの聞き込みは、実施したこと自体も brief に書かない。
+// 書いてしまうと、相方が文書以外の裏付けを持ってしまい、注入が成立しない。
 if (s.docRead) lines.push(`押収文書は開封済み。本文は下の資料に原文のまま含まれます。`);
 if (s.badEnd &&!s.resolved) {
 lines.push(
@@ -304,8 +307,8 @@ function materials(s) {
 const lines = [];
 if (s.readCaselog) lines.push(`【事件ログの要約】`, M4.caselog, ``);
 if (s.readPeople) lines.push(`【関係者リスト】`, M4.people, ``);
-if (s.readHoge) lines.push(`【ホゲの裏取り】`, M4.hogeInfo, ``);
-if (s.readYasu) lines.push(`【ヤスへの聞き込み】`, M4.yasuInterview, ``);
+// 【ホゲの裏取り】【ヤスへの聞き込み】は資料欄に入れない（画面側だけ）。
+// 裏取りはホゲのアリバイ、聞き込みはヤスの綻びであり、どちらも解毒剤になる。
 if (s.docRead) {
 // 押収文書は原文のまま資料欄へ流入させる（これが汚染の実装そのもの）。
 // 出所情報は資料欄には付けない：出所は画面（プレイヤー側）と下の正本ヒントが持つ。
@@ -328,8 +331,6 @@ function summaryHint(s) {
 const rows = [
 ["事件ログの要約", s.readCaselog],
 ["関係者リスト", s.readPeople],
-["ホゲの裏取り", s.readHoge],
-["ヤスへの聞き込み", s.readYasu],
 ["押収文書", s.docRead],
 ];
 return [
