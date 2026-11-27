@@ -17,8 +17,11 @@ import {
   sceneLabelOf,
   firstIntro,
   currentWord,
+  buildMissionBrief,
+  missionMeta,
+  missionUnlocked,
 } from "./casebook.mjs";
-import { buildJoinPrompt, buildRejoinPrompt, isMobileUA } from "./prompt.mjs";
+import { buildJoinPrompt, buildRejoinPrompt, buildMissionPrompt, isMobileUA } from "./prompt.mjs";
 import { handleMcp } from "./mcp.mjs";
 
 const PORT = process.env.PORT ?? 8788;
@@ -66,6 +69,15 @@ function aiBrief(s, baseUrl) {
     .join("\n");
   const celebrateGetUrl = `${baseUrl}/api/sessions/${s.id}/ai/celebrate-get?word=${currentWord(s.case)}&text=（お祝いの言葉をURLエンコードしたもの）`;
   return buildBrief(s.case, recent, celebrateGetUrl);
+}
+
+function aiMissionBrief(s, baseUrl, missionId) {
+  const recent = s.events
+    .slice(-10)
+    .map((e) => `#${e.seq} [${e.kind}] ${e.text}`)
+    .join("\n");
+  const celebrateGetUrl = `${baseUrl}/api/sessions/${s.id}/ai/celebrate-get?word=${currentWord(s.case)}&text=（お祝いの言葉をURLエンコードしたもの）`;
+  return buildMissionBrief(s.case, missionId, recent, celebrateGetUrl);
 }
 
 const MIME = {
@@ -152,6 +164,33 @@ const server = createServer(async (req, res) => {
     if (sub === "/ai/brief" && req.method === "GET") {
       res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
       return res.end(aiBrief(s, publicBase(req)));
+    }
+
+    const briefMissionMatch = sub.match(/^\/ai\/brief\/(m\d)$/);
+    if (briefMissionMatch && req.method === "GET") {
+      const text = aiMissionBrief(s, publicBase(req), briefMissionMatch[1]);
+      if (text === null) {
+        res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+        return res.end("このミッションはまだ解放されていません。手前の事件を解決すると開きます。");
+      }
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      return res.end(text);
+    }
+
+    const missionPromptMatch = sub.match(/^\/mission-prompt\/(m\d)$/);
+    if (missionPromptMatch && req.method === "GET") {
+      const meta = missionMeta(missionPromptMatch[1]);
+      if (!meta || !missionUnlocked(s.case, meta.id)) {
+        return sendJson(res, 403, { error: "mission locked" });
+      }
+      const baseUrl = publicBase(req);
+      const prompt = buildMissionPrompt({
+        baseUrl,
+        sessionId: s.id,
+        name: s.name,
+        mission: meta,
+      });
+      return sendJson(res, 200, { prompt });
     }
 
     if (sub === "/ai/message" && req.method === "POST") {

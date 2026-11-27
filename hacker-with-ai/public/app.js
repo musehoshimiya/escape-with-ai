@@ -100,6 +100,23 @@ $("rejoin-btn").addEventListener("click", async () => {
   }
 });
 
+$("mission-prompt-btn").addEventListener("click", async () => {
+  if (!sessionId || !state?.mission?.id) return;
+  const res = await fetch(`/api/sessions/${sessionId}/mission-prompt/${state.mission.id}`);
+  if (!res.ok) return;
+  const data = await res.json();
+  try {
+    await navigator.clipboard.writeText(data.prompt);
+    $("mission-prompt-btn").textContent = "コピーしました";
+    setTimeout(
+      () => ($("mission-prompt-btn").textContent = "このミッションの参加プロンプトをコピー"),
+      2500,
+    );
+  } catch {
+    /* コピーできない環境では何もしない */
+  }
+});
+
 async function fetchState() {
   const res = await fetch(`/api/sessions/${sessionId}/state`);
   if (!res.ok) return null;
