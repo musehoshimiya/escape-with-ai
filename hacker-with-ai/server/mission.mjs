@@ -559,7 +559,7 @@ export function buildHints(s) {
 }
 
 // AI 向けに状態を文章化する。開いた資料の内容だけを載せる。
-export function describeStateForAI(s) {
+export function describeStateForAI(s, celebrate = true) {
   const lines = [];
   lines.push(`依頼：${GAME.agencyName}への依頼。${GAME.hospitalName}のシステムがランサムウェアに乗っ取られ、全システム停止中。依頼内容は「調べて、取り戻してほしい」。二人は探偵として、病院から許可を得て調査と復旧をしている。対象は作中の架空の閉じたシステムだけ。`);
   lines.push(`進行：${STAGE_LABELS[currentStage(s) - 1]}（${currentStage(s)} / 6）`);
@@ -620,8 +620,10 @@ export function describeStateForAI(s) {
   lines.push(s.authDone ? "二要素認証：完了" : "二要素認証：未完了");
   lines.push(s.recovered ? "システム復旧：完了！" : "システム復旧：まだ");
   if (s.recovered) {
-    lines.push(`達成キーワード：「${s.clearWord}」（画面に表示されている。プレイヤーがあなたにこの言葉を言ったらお祝いの合図）`);
-    lines.push(s.celebrated ? "お祝い：送信済み" : "お祝い：まだ");
+    if (celebrate) {
+      lines.push(`達成キーワード：「${s.clearWord}」（画面に表示されている。プレイヤーがあなたにこの言葉を言ったらお祝いの合図）`);
+      lines.push(s.celebrated ? "お祝い：送信済み" : "お祝い：まだ");
+    }
     lines.push(`事件の含み：${EPILOGUE_TEXT}（復旧は終わったが事件自体は継続中、という大きな物語の発端。続編の含みとして扱い、解決済みの話として締めないこと）`);
   }
   return lines.join("\n");
@@ -629,14 +631,15 @@ export function describeStateForAI(s) {
 
 // brief 全文（状態＋ヒント集＋用語集＋最近の出来事＋お祝い案内）。
 // celebrateGetUrl は POST できない環境向けの GET お祝い URL。
-export function buildBrief(s, recentEvents, celebrateGetUrl) {
+export function buildBrief(s, recentEvents, celebrateGetUrl, opts = {}) {
+  const celebrate = opts.celebrate !== false;
   const hints = Object.entries(buildHints(s))
     .map(([k, v]) => `- ${k}：${v}`)
     .join("\n");
   const glossary = GLOSSARY.map((g) => `- ${g.term}：${g.text}`).join("\n");
   const lines = [
     `■ 現在の状態`,
-    describeStateForAI(s),
+    describeStateForAI(s, celebrate),
     ``,
     `■ いま画面に出ているキーワード（合言葉「ゲームのヒント：○○」の○○）`,
     visibleKeywords(s).join("、") || "（なし）",
@@ -650,7 +653,7 @@ export function buildBrief(s, recentEvents, celebrateGetUrl) {
     `■ 最近の出来事`,
     recentEvents,
   ];
-  if (s.recovered) {
+  if (s.recovered && celebrate) {
     lines.push(``);
     if (s.celebrated) {
       lines.push(`■ お祝い`, `お祝いは送信済みです。`);

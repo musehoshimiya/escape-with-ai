@@ -38,6 +38,28 @@ clearWord: pick(CLEAR_WORDS),
 };
 }
 
+// 応募者の申告は「聞き込み」なので、ノベルパート（会話形式）で出す。
+// 1行ごとに話者が替わるため、行頭の「・名前：「…」」から話者を切り出す。
+function claimsDialogue() {
+  const lines = M2.claims
+    .split("\n")
+    .filter((line) => line.length > 0)
+    .map((line) => {
+      const m = line.match(/^・(.+?)：(「.*」)$/);
+      if (m) return { speaker: m[1].replace(/さん$/, ""), text: m[2] };
+      return { speaker: null, text: line };
+    });
+  return {
+    title: "応募者の申告",
+    cast: [
+      { slot: "left", name: "田村 さくら", role: "応募者", color: "#d98fb2" },
+      { slot: "center", name: "岡本 健", role: "応募者", color: "#8fb2d9" },
+      { slot: "right", name: "瀬戸 海", role: "応募者", color: "#a0d98f" },
+    ],
+    lines,
+  };
+}
+
 function currentStage(s) {
 if (s.reported) return 4;
 if (s.identified) return 3;
@@ -149,9 +171,10 @@ guide: s.readGuide? { text: M2.guide}: null,
 claims: s.readClaims? { text: M2.claims}: null,
 materials: {
 ...(s.readGuide? { guide: { title: "応募要項", text: M2.guide}}: {}),
-...(s.readClaims? { claims: { title: "応募者の申告", text: M2.claims}}: {}),
 },
-dialogues: {},
+dialogues: {
+...(s.readClaims? { claims: claimsDialogue()}: {}),
+},
 files: s.files.map((f) => ({
 id: f.id,
 name: f.name,
@@ -227,7 +250,7 @@ if (s.reported) return ["報告は済んでいる。事件は解決済みだ。"
 if (!s.identified) return ["本物の応募作品を特定してからでないと、報告はできない。"];
 s.reported = true;
 return [
-`依頼人の大場さんに鑑定結果を報告した。揉め事は収まり、コンテストは本物の作品で審査をやり直すことになった。事件解決！画面に達成キーワードが表示されるので、相方AIに「ゲームのお祝い：キーワード」と伝えてほしい。`,
+`依頼人の大場さんに鑑定結果を報告した。揉め事は収まり、コンテストは本物の作品で審査をやり直すことになった。事件解決！事件簿に次の依頼が開いている。`,
 ];
 }
 default:
@@ -304,7 +327,8 @@ text: [
 },
 ];
 
-export function buildBrief(s, recentEvents, celebrateGetUrl) {
+export function buildBrief(s, recentEvents, celebrateGetUrl, opts = {}) {
+const celebrate = opts.celebrate !== false;
 const lines = [];
 lines.push(describeState(s));
 const mats = materials(s);
@@ -319,7 +343,7 @@ lines.push(
 `プレイヤーが「ゲームの用語：○○」と言ったら、次の用語集の範囲で、概念だけをやさしく説明してください。用語集に無い言葉は、一般的な概念の範囲で説明してかまいません。ただし、この事件の答えそのものは用語説明では明かさないでください。`,
 ...[...GLOSSARY, ...M2_GLOSSARY].map((g) => `- ${g.term}：${g.text}`)
 );
-if (s.reported) {
+if (s.reported && celebrate) {
 lines.push(``);
 if (s.celebrated) {
 lines.push(`■ お祝い`, `お祝いは送信済みです。`);
