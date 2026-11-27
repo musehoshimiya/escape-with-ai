@@ -191,6 +191,7 @@ try {
   await waitS(`!document.querySelector('#twofa-dialog').hidden`, "認証ゲートのダイアログ表示");
   check("認証ゲートを押すとダイアログが開く", true);
   check("チャレンジがダイアログに表示される", await evalS(`document.querySelector('#twofa-challenge').textContent.trim().length >= 4`));
+  check("シードは相方AIだけが知る旨と声かけの案内が明示される", await evalS(`document.querySelector('#twofa-dialog').textContent.includes('認証シード') && document.querySelector('#twofa-dialog').textContent.includes('声をかけて')`));
 
   await evalS(`document.querySelector('#twofa-code').value = '000000'`);
   await evalS(`document.querySelector('#twofa-form').requestSubmit()`);

@@ -184,13 +184,72 @@ try {
   await evalS(`document.querySelector('[data-spot="roster"]').click()`);
   await waitS(`document.querySelector('#log').textContent.includes('職員名簿を開いた')`, "名簿イベント");
   check("職員名簿を開くとストーリーに記録される", true);
+
+  console.log("== 資料モーダル（UI基準） ==");
+  await waitS(`!document.querySelector('#material-dialog').hidden`, "資料モーダル表示");
+  check("職員名簿はモーダルで表示される", true);
+  check("モーダルのタイトルが職員名簿", await evalS(`document.querySelector('#material-title').textContent === '職員名簿'`));
+  const matBody = await evalS(`document.querySelector('#material-body').textContent`);
+  check("モーダルに名簿の全文が見える", matBody.includes("佐伯 恒一") && matBody.includes("好きな花"));
+  const matStaffLine = matBody.split("\n").find((l) => l.includes("佐伯 恒一")) ?? "";
+  check("モーダルと同じ内容がバックログにもある",
+    matStaffLine.length > 0 && (await evalS(`document.querySelector('#log').textContent.includes(${JSON.stringify(matStaffLine)})`)));
+  await evalS(`document.querySelector('#material-close').click()`);
+  check("資料モーダルが閉じる", await evalS(`document.querySelector('#material-dialog').hidden`));
+  const countRosterLog = async () =>
+    evalS(`(document.querySelector('#log').textContent.match(/職員名簿を開いた/g) || []).length`);
+  check("名簿イベントはバックログに1件だけ", (await countRosterLog()) === 1);
+  await evalS(`document.querySelector('[data-spot="roster"]').click()`);
+  await waitS(`!document.querySelector('#material-dialog').hidden`, "資料モーダル再表示");
+  check("既読の資料は再投稿せずモーダルが即開く", true);
+  check("再読してもバックログに名簿が重複しない", (await countRosterLog()) === 1);
+  await evalS(`document.querySelector('#material-close').click()`);
+
+  console.log("== 聞き込みノベルパート ==");
   await evalS(`document.querySelector('[data-spot="interview"]').click()`);
   await waitS(`document.querySelector('#log').textContent.includes('聞き込み')`, "聞き込みイベント");
   check("聞き込みの証言がストーリーに記録される", true);
+  await waitS(`!document.querySelector('#novel-window').hidden`, "ノベルウィンドウ表示");
+  check("聞き込みはステージのノベルウィンドウで始まる", true);
+  const playNovel = async () => {
+    const seen = [];
+    for (let i = 0; i < 15; i++) {
+      if (await evalS(`document.querySelector('#novel-window').hidden`)) break;
+      seen.push(await evalS(`({
+        nameHidden: document.querySelector('#novel-name').hidden,
+        name: document.querySelector('#novel-name').textContent,
+        text: document.querySelector('#novel-text').textContent,
+        speaking: !!document.querySelector('.cast-slot.speaking'),
+      })`));
+      await evalS(`document.querySelector('#novel-next').click()`);
+      await sleep(120);
+    }
+    return seen;
+  };
+  const novelLines = await playNovel();
+  check("ノベルは全6行を送り終えると閉じる", novelLines.length === 6 && (await evalS(`document.querySelector('#novel-window').hidden`)));
+  check("地の文（見出し）では名前プレートが出ない", novelLines[0]?.nameHidden === true);
+  check("話者の行では名前プレートに話者が出る", novelLines.some((l) => !l.nameHidden && l.name === "山田"));
+  check("発言中は話者の立ち絵が speaking になる", novelLines.some((l) => l.speaking === true));
+  check("台詞が1行ずつ送られる", novelLines.some((l) => l.text.includes("パスワードを教えて")));
+  check("ノベル終了後はステージのキャプションが戻る", await evalS(`!document.querySelector('#stage-caption').hidden`));
+  const countInterviewLog = async () =>
+    evalS(`(document.querySelector('#log').textContent.match(/情報システム課を名乗る人から電話/g) || []).length`);
+  check("聞き込みの全文はバックログに1件だけ残る", (await countInterviewLog()) === 1);
+  await evalS(`document.querySelector('[data-spot="interview"]').click()`);
+  await waitS(`!document.querySelector('#novel-window').hidden`, "ノベル再再生");
+  check("既読の聞き込みは再投稿せずノベルが再生できる", true);
+  await playNovel();
+  check("再再生してもバックログに聞き込みが重複しない", (await countInterviewLog()) === 1);
+
   await evalS(`document.querySelector('[data-spot="sns"]').click()`);
   await waitS(`document.querySelector('#log').textContent.includes('公開情報')`, "公開情報イベント");
   check("公開情報の調査がストーリーに記録される", true);
   check("キーワードに照合が増える", await evalS(`document.querySelector('#keywords').textContent.includes('聞き込みと公開情報の照合')`));
+  await waitS(`!document.querySelector('#material-dialog').hidden`, "公開情報モーダル表示");
+  check("公開情報もモーダルで表示される（UI基準）",
+    await evalS(`document.querySelector('#material-title').textContent === '公開情報の調査' && document.querySelector('#material-body').textContent.includes('公開投稿')`));
+  await evalS(`document.querySelector('#material-close').click()`);
 
   console.log("== メールダイアログ ==");
   await evalS(`document.querySelector('[data-spot="mail"]').click()`);

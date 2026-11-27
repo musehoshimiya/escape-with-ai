@@ -244,6 +244,7 @@
       <button id="twofa-close" type="button" class="ghost">閉じる</button>
     </div>
     <p class="note">チャレンジ：<span id="twofa-challenge" class="mono big-mono"></span></p>
+    <p class="note"><strong>認証コードは、相方のAIに声をかけて作ってもらいます。</strong>コードの材料のひとつ「認証シード」は相方のAIだけが知っている秘密で、この画面には表示されません。相方に「ゲームのヒント：認証コードの作り方」と聞いて、上のチャレンジの数字を伝えてください。</p>
     <form id="twofa-form">
       <div class="row">
         <input id="twofa-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="6桁の認証コード" autocomplete="off">
@@ -253,7 +254,7 @@
     <p class="note">3回間違えると1分ほどロックされます。</p>
     <details class="hint-fold">
       <summary>ヒント（見たい人だけ）</summary>
-      <p class="note">コードは、チャレンジと相方のAIだけが知る情報から作ります。チャレンジの数字をAIに伝えてみてください。</p>
+      <p class="note">パスワード（知っているもの）と、手元の機器や相方が持つ秘密（持っているもの）を組み合わせるのが二要素認証です。片方が漏れても、もう片方だけでは認証できません。</p>
     </details>
     <p id="twofa-message" class="dialog-message"></p>
   </div>
