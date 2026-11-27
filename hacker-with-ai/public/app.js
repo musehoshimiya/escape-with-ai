@@ -166,6 +166,28 @@ function render(state) {
     $("epilogue-line").textContent = state.epilogue ?? "";
   }
 
+  // 次の事件への導線（解決バナーの中に明示する）
+  const nextBtn = $("next-case-btn");
+  const nextLine = $("next-case-line");
+  if (state.recovered && state.casebook) {
+    const next = state.casebook.find((c) => c.status === "open" && !c.started) ?? state.casebook.find((c) => c.status === "open");
+    if (next) {
+      nextLine.textContent = "事件簿に、新しい依頼が届いています。";
+      nextBtn.hidden = false;
+      nextBtn.textContent = `次の事件へ進む：ミッション${next.no}「${next.title}」`;
+      nextBtn.onclick = async () => { await postAction({ spot: "select_mission", mission: next.id }); };
+    } else if (state.allCleared) {
+      nextLine.textContent = "事件簿の依頼は、すべて解決済みです。おつかれさま！";
+      nextBtn.hidden = true;
+    } else {
+      nextLine.textContent = "";
+      nextBtn.hidden = true;
+    }
+  } else {
+    nextLine.textContent = "";
+    nextBtn.hidden = true;
+  }
+
   // 対応手順（ステッパー）
   const stagesSig = state.stages.map((x) => x.state).join("|");
   if (stagesSig !== render.prevStagesSig) {
@@ -240,9 +262,9 @@ function render(state) {
   $("inventory").textContent =
     state.inventory.length > 0 ? state.inventory.join("、") : "（なし）";
 
-  // 報告書パネル（クリア後のみ）
+  // 報告書パネル（クリア後のみ）。ミッションごとに内容が違うので、署名は内容で作る
   if (state.debrief) {
-    const sig = "shown";
+    const sig = (state.mission?.id ?? "") + ":" + state.debrief.map((d) => d.title).join("|");
     if (render.prevDebriefSig !== sig) {
       render.prevDebriefSig = sig;
       $("debrief-panel").hidden = false;
@@ -268,6 +290,9 @@ function render(state) {
         wrap.appendChild(div);
       }
     }
+  } else if (!$("debrief-panel").hidden) {
+    $("debrief-panel").hidden = true;
+    render.prevDebriefSig = null;
   }
 
   renderMailDialog(state);
@@ -384,14 +409,14 @@ function renderCasebook(state) {
   for (const c of state.casebook) {
     const li = document.createElement("li");
     const b = document.createElement("button");
-    b.className = "case-item" + (c.status === "current" ? " is-current" : c.status === "cleared" ? " is-cleared" : c.status === "locked" ? " is-locked" : "");
+    b.className = "case-item" + (c.status === "current" ? " is-current" : c.status === "cleared" ? " is-cleared" : c.status === "locked" ? " is-locked" : c.started ? "" : " is-new");
     b.disabled = c.status === "locked" || c.status === "current";
     const title = document.createElement("span");
     title.className = "case-title";
     title.textContent = `${c.no}. ${c.title}`;
     const st = document.createElement("span");
     st.className = "case-status";
-    st.textContent = c.status === "cleared" ? "解決済み" : c.status === "current" ? "対応中" : c.status === "locked" ? "未解放" : "未解決";
+    st.textContent = c.status === "cleared" ? "解決済み" : c.status === "current" ? "対応中" : c.status === "locked" ? "未解放" : c.started ? "進行中" : "新しい依頼";
     b.append(title, st);
     b.addEventListener("click", async () => {
       for (const d of ["mail-dialog", "files-dialog", "images-dialog", "doc-dialog", "accuse-dialog", "material-dialog"]) closeDialog(d);
