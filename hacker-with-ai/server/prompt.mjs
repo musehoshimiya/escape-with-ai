@@ -159,7 +159,6 @@ export function buildJoinPrompt({ baseUrl, sessionId, name, mcpRoot, isMobile = 
     `合言葉に答える前に、その都度 brief と出来事を取り直してください。brief は事件全体を1つのシナリオとして書いたもので、事件が解決してプレイヤーが「次の事件だよ」と言ったら、取り直した brief に新しい章が増え、「いまの事件」の印がその章に移っています。合言葉への回答は、必ず「いまの事件」の章の中から答えてください。brief 先頭の「状態」の行が会話の前提と違っていたら、brief が正です。`,
     ``,
     ...CELEBRATE_RULES,
-  ...EASTER_RULES,
     ``,
     `では、状態を取得して、挨拶メッセージを残してください。`,
   ].join("\n");
@@ -187,7 +186,6 @@ export function buildRejoinPrompt({ baseUrl, sessionId, name, mcpRoot }) {
     ...HINT_RULES,
     ``,
     ...CELEBRATE_RULES,
-  ...EASTER_RULES,
     ``,
     `では、状態と出来事を取得して、挨拶メッセージを残してください。`,
   ].join("\n");
