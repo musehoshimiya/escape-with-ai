@@ -100,7 +100,10 @@ export function applyAction(c, action) {
     if (!c.states[id]) c.states[id] = MODULES[id].createState();
     if (!c.opened[id]) {
       c.opened[id] = true;
-      return [MODULES[id].introText];
+      return [
+        MODULES[id].introText,
+        `（相方への声かけ）事件が切り替わったよ。相方のAIが前の事件のつもりで答える場合は、「briefを取り直して」と声をかけてみよう。`,
+      ];
     }
     return [`事件簿から「${MODULES[id].title}」を開いた。`];
   }
