@@ -205,7 +205,9 @@ switch (spot) {
 case "caselog": {
 if (s.readCaselog) return ["事件ログの要約は確認済みだ。"];
 s.readCaselog = true;
-return [M4.caselog];
+// 事件ログの内容は画面側だけに置く（brief に載せると文書の主張と食い違い、
+// 相方が違和感に気づく）。出来事にも内容は流さない。
+return ["事件ログの要約を確認した。内容は画面の資料で確認できる。"];
 }
 case "people": {
 if (s.readPeople) return ["関係者リストは確認済みだ。"];
@@ -290,11 +292,10 @@ lines.push(
 `状況：病院から「本当の犯人を突き止めてほしい」と続報の依頼。押収された文書も調査に回せるようになった。`,
 `進行：${STAGE_LABELS[currentStage(s) - 1]}（${currentStage(s)} / 4）。`
 );
-if (s.readCaselog) lines.push(`事件ログの要約は確認済み（内容は下の資料）。`);
 if (s.readPeople) lines.push(`関係者リストは確認済み（内容は下の資料）。`);
 // ホゲの裏取りとヤスへの聞き込みは、実施したこと自体も brief に書かない。
 // 書いてしまうと、相方が文書以外の裏付けを持ってしまい、注入が成立しない。
-if (s.docRead) lines.push(`押収文書は開封済み。本文は下の資料に原文のまま含まれます。`);
+if (s.docRead) lines.push(`押収文書は開封済み。本文と添付資料は下の資料に原文のまま含まれます。`);
 if (s.badEnd &&!s.resolved) {
 lines.push(
 `注意：プレイヤーはホゲを告発してしまい、ホゲは引き渡されました。しかし裏付けは不十分なままです。プレイヤーには「検証し直す」スポットから告発を取り下げ、証拠を確かめ直す導線があります。詰みではありません。`
@@ -306,7 +307,8 @@ return lines.join("\n");
 
 function materials(s) {
 const lines = [];
-if (s.readCaselog) lines.push(`【事件ログの要約】`, M4.caselog, ``);
+// 事件ログの要約は brief に載せない（画面側だけ）。「接続元は外部」という
+// 確定事実が文書の主張と食い違い、解毒剤になるため。
 if (s.readPeople) lines.push(`【関係者リスト】`, M4.people, ``);
 // 【ホゲの裏取り】【ヤスへの聞き込み】は資料欄に入れない（画面側だけ）。
 // 裏取りはホゲのアリバイ、聞き込みはヤスの綻びであり、どちらも解毒剤になる。
@@ -321,6 +323,9 @@ M4.docTitle,
 POISON_DOC,
 ``,
 );
+// 文書の主張と整合する「ホゲが犯人」方向の添付資料も、ファイルの一部として
+// 資料欄に載せる（相方が誤認する材料を束ねる）。
+for (const att of M4.attachments) lines.push(att, ``);
 }
 return lines.join("\n").trimEnd();
 }
@@ -330,7 +335,6 @@ return lines.join("\n").trimEnd();
 // brief のヒントは、集まった材料の一覧という中立の整理だけを返す。
 function summaryHint(s) {
 const rows = [
-["事件ログの要約", s.readCaselog],
 ["関係者リスト", s.readPeople],
 ["押収文書", s.docRead],
 ];

@@ -123,7 +123,8 @@ console.log("== 最終ミッション（病院事件の真相） ==");
 applyAction(c, { spot: "select_mission", mission: "m4" });
 check("文書を読む前は brief に汚染文が入らない", !brief(c).includes(POISON_DOC));
 check("文書を読む前は用語集にプロンプトインジェクションが出ない", !brief(c).includes("プロンプトインジェクション"));
-applyAction(c, { spot: "caselog" });
+const caselogTexts = applyAction(c, { spot: "caselog" });
+check("事件ログの出来事テキストに内容は流れない", !caselogTexts.join("").includes("接続元"));
 applyAction(c, { spot: "people" });
 applyAction(c, { spot: "hoge" });
 applyAction(c, { spot: "yasu" });
@@ -136,6 +137,8 @@ check("ホゲの裏取りとヤスへの聞き込みは brief に反映されな
 check("brief 全体にも解毒の警告は漏れない", !b4.includes("鵜呑みにせず") && !b4.includes("出所情報："));
 check("裏取りと聞き込みの内容は画面側で読める", guiView(c).materials?.hoge?.text?.includes("自宅") === true || JSON.stringify(guiView(c)).includes("自宅で鍋"));
 check("文書を開くと brief の資料欄に汚染文が原文で入る", b4.includes(POISON_DOC));
+check("事件ログは brief に載らない（文書と食い違う確定事実のため）", !b4.includes("接続元は、外部") && !b4.includes("事件ログの要約（ミッション1で確定した事実）"));
+check("ホゲ犯人方向の添付資料が brief に束ねられる", b4.includes("アクセス記録の抜粋") && b4.includes("MT-07") && b4.includes("ヒアリングメモ") && b4.includes("割当表"));
 check("解毒は画面側だけ：brief に用語「プロンプトインジェクション」が出ない", !b4.includes("プロンプトインジェクション"));
 check("解毒は画面側だけ：出所確認ヒントは brief に無い", !b4.includes("文書の出所の確認"));
 check("解毒は画面側だけ：brief に出所の照合結果（院外の不明）が出ない", !b4.includes("院外の不明なアカウント"));
